@@ -9,9 +9,53 @@ PLEASE STRICTLY FOLLOW THE BEST PRACTICES FOR SKILL: https://platform.claude.com
 - Ignore content that LLM agents already confident about in their training data.
 - Make the skill as concise as possible, avoid creating too many references.
 
+## Fork Usage Mode
+
+This repository is `canstand/skills`, a custom fork of `antfu/skills`.
+
+- `upstream` points to `https://github.com/antfu/skills`.
+- `origin` points to `https://github.com/canstand/skills.git`.
+- `main` should track/sync upstream changes as closely as practical.
+- `custom` is the working branch for canstand-specific changes.
+
+Do not assume this fork publishes skills to npm or relies on the `skills` CLI as the primary installation mechanism. `package.json` is intentionally private. When documenting or changing the local usage workflow, prefer local filesystem links over npm/package publishing.
+
+### Local Skill Consumption
+
+When another project needs a skill from this repository, use a symbolic link from that project's `.agents/skills/` directory to this repository's concrete skill directory.
+
+Example for a Nuxt project:
+
+```bash
+mkdir -p .agents/skills
+ln -s ~/git/my/skills/skills/nuxt .agents/skills/nuxt
+```
+
+Rules for agents working with this fork:
+
+- Link to `~/git/my/skills/skills/{skill-name}` unless the user gives a different clone path.
+- Keep the symlink name equal to the skill name unless the target project explicitly needs an alias.
+- Do not copy skill directories into consuming projects unless the user explicitly asks for a vendored snapshot.
+- Do not add npm publishing, package release, or `pnpx skills add` instructions for canstand's workflow unless the user explicitly asks.
+
+### Custom Branch Workflow
+
+Use `custom` for canstand-specific skills, instruction changes, regenerated outputs, and local documentation. When upstream has changes, the expected flow is:
+
+1. Sync `main` with `upstream/main`.
+2. Review the upstream changes.
+3. Bring selected changes into `custom` by merge, rebase, cherry-pick, or manual regeneration depending on the requested maintenance task.
+
+When editing on `custom`, preserve upstream compatibility where practical so future upstream updates remain easy to evaluate. Clearly separate:
+
+- upstream-synced changes,
+- regenerated skill output,
+- canstand-specific manual preferences,
+- documentation about this fork's local usage.
+
 ## Skill Source Types
 
-There are two types of skill sources. The project lists are defined in `meta.ts`:
+There are three types of skill sources. The project lists are defined in `meta.ts`:
 
 ### Type 1: Generated Skills (`sources/`)
 
@@ -34,7 +78,7 @@ For projects that **already maintain their own skills**. We clone their repo as 
 
 For skills that are written by Anthony Fu with his preferences, experience, tastes and best practices.
 
-You don't need to do anything about them unless being asked.
+On the `custom` branch, hand-written skills may also include canstand-specific preferences and best practices. Do not modify upstream hand-written skills or add canstand-specific opinionated content unless the user asks for it.
 
 ## Repository Structure
 
@@ -179,6 +223,12 @@ metadata:
 
 // ...
 ```
+
+For upstream-compatible generated or synced skills, preserve the upstream metadata style. For canstand-specific skills or materially customized regenerations on `custom`, make the provenance explicit instead of implying the output is purely upstream:
+
+- use `author: canstand` for custom-only skills,
+- use `author: Anthony Fu, canstand` when the skill is derived from upstream but intentionally customized,
+- mention this fork or the customized instruction source in `metadata.source` when applicable.
 
 ### `GENERATION.md`
 

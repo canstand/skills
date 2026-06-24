@@ -2,11 +2,32 @@
 
 A curated collection of [Agent Skills](https://agentskills.io/home) reflecting [Anthony Fu](https://github.com/antfu)'s preferences, experience, and best practices, along with usage documentation for the tools.
 
+This fork is maintained by [canstand](https://github.com/canstand) as a local, customized skill collection on top of [antfu/skills](https://github.com/antfu/skills). The `custom` branch is intended for personal skills, customized generation instructions, and regenerated outputs.
+
 > [!IMPORTANT]
 > This is a proof-of-concept project for generating agent skills from source documentation and keeping them in sync.
 > I haven't fully tested how well the skills perform in practice, so feedback and contributions are greatly welcome.
 
-## Installation
+## Local Usage in canstand Projects
+
+This fork is not intended to publish skills to npm. Consuming projects should link to the required skill directory from this local clone.
+
+Example for using the Nuxt skill in another project:
+
+```bash
+mkdir -p .agents/skills
+ln -s ~/git/my/skills/skills/nuxt .agents/skills/nuxt
+```
+
+Use the same pattern for other skills:
+
+```bash
+ln -s ~/git/my/skills/skills/{skill-name} .agents/skills/{skill-name}
+```
+
+Prefer symlinks over copying so projects automatically use the current `custom` branch checkout. Copy a skill into a project only when a fixed vendored snapshot is explicitly needed.
+
+## Upstream Installation
 
 ```bash
 pnpx skills add antfu/skills --skill='*'
@@ -18,7 +39,7 @@ or to install all of them globally:
 pnpx skills add antfu/skills --skill='*' -g
 ```
 
-Learn more about the CLI usage at [skills](https://github.com/vercel-labs/skills).
+Learn more about the CLI usage at [skills](https://github.com/vercel-labs/skills). This is the upstream/public installation path, not the default workflow for this fork.
 
 ## Skills
 
@@ -96,6 +117,15 @@ Fork this project to create your own customized skill collection.
 7. Ask your agent to `Generate skills for \<project\>` (recommended one at a time to manage token usage)
 
 See [AGENTS.md](AGENTS.md) for detailed generation guidelines.
+
+## Maintaining This Fork
+
+`origin` points to `canstand/skills`; `upstream` points to `antfu/skills`.
+
+- Keep upstream tracking changes on `main`.
+- Use `custom` for canstand-specific skills, instruction updates, regenerated outputs, and local usage documentation.
+- When upstream changes, sync `main` first, then selectively merge, rebase, cherry-pick, or regenerate into `custom`.
+- Keep `package.json` private and avoid adding npm publish/release workflow unless that requirement changes.
 
 ## Sponsors
 
