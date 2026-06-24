@@ -1,15 +1,19 @@
 [submodule "sources/vue"]
 	path = sources/vue
 	url = https://github.com/vuejs/docs
+	shallow = true
 [submodule "sources/nuxt"]
 	path = sources/nuxt
 	url = https://github.com/nuxt/nuxt
+	shallow = true
 [submodule "sources/vite"]
 	path = sources/vite
 	url = https://github.com/vitejs/vite
+	shallow = true
 [submodule "sources/unocss"]
 	path = sources/unocss
 	url = https://github.com/unocss/unocss
+	shallow = true
 [submodule "vendor/slidev"]
 	path = vendor/slidev
 	url = https://github.com/slidevjs/slidev
@@ -19,12 +23,15 @@
 [submodule "sources/vitest"]
 	path = sources/vitest
 	url = https://github.com/vitest-dev/vitest
+	shallow = true
 [submodule "sources/pnpm"]
 	path = sources/pnpm
 	url = https://github.com/pnpm/pnpm.io
+	shallow = true
 [submodule "sources/vitepress"]
 	path = sources/vitepress
 	url = https://github.com/vuejs/vitepress
+	shallow = true
 [submodule "vendor/turborepo"]
 	path = vendor/turborepo
 	url = https://github.com/vercel/turborepo
@@ -34,6 +41,7 @@
 [submodule "sources/pinia"]
 	path = sources/pinia
 	url = https://github.com/vuejs/pinia
+	shallow = true
 [submodule "vendor/tsdown"]
 	path = vendor/tsdown
 	url = https://github.com/rolldown/tsdown
@@ -43,3 +51,9 @@
 [submodule "sources/nitro"]
 	path = sources/nitro
 	url = https://github.com/nitrojs/nitro
+	shallow = true
+[submodule "vendor/nuxt-ui"]
+	path = vendor/nuxt-ui
+	url = https://github.com/nuxt/ui
+	branch = v4
+	shallow = true

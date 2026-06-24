@@ -26,6 +26,41 @@ function getGitSha(dir: string): string | null {
   return execSafe('git rev-parse HEAD', dir)
 }
 
+const LICENSE_PATHS = [
+  '/LICENSE',
+  '/LICENSE.md',
+  '/LICENSE.txt',
+  '/license',
+  '/license.md',
+  '/license.txt',
+]
+
+function getVendorSparsePaths(config: VendorConfig): string[] {
+  if (config.sparsePaths)
+    return config.sparsePaths
+
+  const skillsBasePath = config.skillsPath || 'skills'
+  const skillPaths = Object.keys(config.skills).map(skillName => `/${skillsBasePath}/${skillName}/`)
+
+  return [...skillPaths, ...LICENSE_PATHS]
+}
+
+function applySparseCheckout(dir: string, sparsePaths: string[]): void {
+  if (sparsePaths.length === 0)
+    return
+
+  exec('git sparse-checkout init --no-cone', dir)
+  exec(`git sparse-checkout set --no-cone ${sparsePaths.join(' ')}`, dir)
+}
+
+function fetchShallow(dir: string, branch?: string): void {
+  const currentBranch = branch || execSafe('git rev-parse --abbrev-ref HEAD', dir)
+  if (!currentBranch || currentBranch === 'HEAD')
+    return
+
+  execSafe(`git fetch --depth=1 origin ${currentBranch}`, dir)
+}
+
 function submoduleExists(path: string): boolean {
   const gitmodules = join(root, '.gitmodules')
   if (!existsSync(gitmodules))
@@ -60,27 +95,46 @@ function removeSubmodule(submodulePath: string): void {
 interface Project {
   name: string
   url: string
+  branch?: string
+  shallow?: boolean
+  sparsePaths?: string[]
   type: 'source' | 'vendor'
   path: string
 }
 
 interface VendorConfig {
   source: string
+  branch?: string
+  shallow?: boolean
+  sparsePaths?: string[]
   skillsPath?: string // Optional custom path to skills directory (default: 'skills')
   skills: Record<string, string> // sourceSkillName -> outputSkillName
 }
 
+interface SourceConfig {
+  source: string
+  branch?: string
+  shallow?: boolean
+  sparsePaths?: string[]
+}
+
 async function initSubmodules(skipPrompt = false) {
   const allProjects: Project[] = [
-    ...Object.entries(submodules).map(([name, url]) => ({
+    ...Object.entries(submodules).map(([name, config]) => ({
       name,
-      url,
+      url: (config as SourceConfig).source,
+      branch: (config as SourceConfig).branch,
+      shallow: (config as SourceConfig).shallow,
+      sparsePaths: (config as SourceConfig).sparsePaths,
       type: 'source' as const,
       path: `sources/${name}`,
     })),
     ...Object.entries(vendors).map(([name, config]) => ({
       name,
       url: (config as VendorConfig).source,
+      branch: (config as VendorConfig).branch,
+      shallow: (config as VendorConfig).shallow,
+      sparsePaths: getVendorSparsePaths(config as VendorConfig),
       type: 'vendor' as const,
       path: `vendor/${name}`,
     })),
@@ -160,7 +214,13 @@ async function initSubmodules(skipPrompt = false) {
     }
 
     try {
-      exec(`git submodule add ${project.url} ${project.path}`)
+      const branchArgs = project.branch ? ` -b ${project.branch}` : ''
+      exec(`git submodule add${branchArgs} ${project.url} ${project.path}`)
+      if (project.shallow) {
+        exec(`git config -f .gitmodules submodule.${project.path}.shallow true`)
+        fetchShallow(join(root, project.path), project.branch)
+      }
+      applySparseCheckout(join(root, project.path), project.sparsePaths)
       spinner.stop(`Added: ${project.name}`)
     }
     catch (e) {
@@ -175,13 +235,36 @@ async function initSubmodules(skipPrompt = false) {
   }
 }
 
-async function syncSubmodules() {
+async function syncSubmodules(targets: string[] = []) {
   const spinner = p.spinner()
+  const targetSet = new Set(targets)
+  const vendorEntries = Object.entries(vendors).filter(([vendorName, config]) => {
+    if (targetSet.size === 0)
+      return true
 
-  // Update all submodules
-  spinner.start('Updating submodules...')
+    const vendorConfig = config as VendorConfig
+    const outputSkillNames = Object.values(vendorConfig.skills)
+    return targetSet.has(vendorName) || outputSkillNames.some(skillName => targetSet.has(skillName))
+  })
+
+  if (targetSet.size > 0 && vendorEntries.length === 0) {
+    p.log.warn(`No matching vendor skills found for: ${targets.join(', ')}`)
+    return
+  }
+
+  // Update all submodules, or only the selected vendored submodules.
+  const submodulePaths = targetSet.size > 0
+    ? vendorEntries.map(([vendorName]) => `vendor/${vendorName}`)
+    : []
+
+  spinner.start(targetSet.size > 0 ? `Updating submodules: ${submodulePaths.join(', ')}` : 'Updating submodules...')
   try {
-    exec('git submodule update --remote --merge')
+    const pathArgs = submodulePaths.length > 0 ? ` -- ${submodulePaths.join(' ')}` : ''
+    exec(`git submodule update --remote --merge --recommend-shallow${pathArgs}`)
+    for (const [vendorName, config] of vendorEntries) {
+      const vendorConfig = config as VendorConfig
+      applySparseCheckout(join(root, 'vendor', vendorName), getVendorSparsePaths(vendorConfig))
+    }
     spinner.stop('Submodules updated')
   }
   catch (e) {
@@ -190,7 +273,7 @@ async function syncSubmodules() {
   }
 
   // Sync Type 2 skills
-  for (const [vendorName, config] of Object.entries(vendors)) {
+  for (const [vendorName, config] of vendorEntries) {
     const vendorConfig = config as VendorConfig
     const vendorPath = join(root, 'vendor', vendorName)
     const skillsBasePath = vendorConfig.skillsPath || 'skills'
@@ -367,15 +450,21 @@ async function cleanup(skipPrompt = false) {
 
   // 1. Find and remove extra submodules
   const allProjects: Project[] = [
-    ...Object.entries(submodules).map(([name, url]) => ({
+    ...Object.entries(submodules).map(([name, config]) => ({
       name,
-      url,
+      url: (config as SourceConfig).source,
+      branch: (config as SourceConfig).branch,
+      shallow: (config as SourceConfig).shallow,
+      sparsePaths: (config as SourceConfig).sparsePaths,
       type: 'source' as const,
       path: `sources/${name}`,
     })),
     ...Object.entries(vendors).map(([name, config]) => ({
       name,
       url: (config as VendorConfig).source,
+      branch: (config as VendorConfig).branch,
+      shallow: (config as VendorConfig).shallow,
+      sparsePaths: getVendorSparsePaths(config as VendorConfig),
       type: 'vendor' as const,
       path: `vendor/${name}`,
     })),
@@ -479,7 +568,8 @@ async function main() {
 
   if (command === 'sync') {
     p.intro('Skills Manager - Sync')
-    await syncSubmodules()
+    const targets = args.filter(arg => !arg.startsWith('-')).slice(1)
+    await syncSubmodules(targets)
     p.outro('Done')
     return
   }

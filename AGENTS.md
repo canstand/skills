@@ -61,18 +61,20 @@ There are three types of skill sources. The project lists are defined in `meta.t
 
 For OSS projects **without existing skills**. We clone the repo as a submodule and generate skills from their documentation.
 
-- **Projects:** Vue, Nuxt, Vite, UnoCSS
+- **Projects:** Vue, Nuxt, Vite, UnoCSS, and other projects listed in `meta.ts`
 - **Workflow:** Read docs → Understand → Generate skills
 - **Source:** `sources/{project}/docs/`
+- **Checkout:** Source submodules use shallow clone by default. Do not use sparse checkout unless the project-specific docs paths are known to be sufficient.
 
 ### Type 2: Synced Skills (`vendor/`)
 
 For projects that **already maintain their own skills**. We clone their repo as a submodule and sync specified skills to ours.
 
-- **Projects:** Slidev, VueUse
+- **Projects:** Slidev, VueUse, Nuxt UI, and other projects listed in `meta.ts`
 - **Workflow:** Pull updates → Copy specified skills (with optional renaming)
 - **Source:** `vendor/{project}/skills/{skill-name}/`
 - **Config:** Each vendor specifies which skills to sync and their output names in `meta.ts`
+- **Checkout:** Vendor submodules use sparse checkout by default, limited to synced skill directories and root LICENSE files.
 
 ### Type 3: Hand-written Skills
 
@@ -118,7 +120,10 @@ On the `custom` branch, hand-written skills may also include canstand-specific p
    ```ts
    export const submodules = {
      // ... existing entries
-     'new-project': 'https://github.com/org/repo',
+     'new-project': {
+       source: 'https://github.com/org/repo',
+       shallow: true,
+     },
    }
    ```
 
