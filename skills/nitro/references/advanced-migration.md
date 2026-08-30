@@ -16,6 +16,15 @@ The `nitropack` package is renamed to `nitro`.
 + import { defineConfig } from "nitro"
 ```
 
+Plugins also use the renamed `definePlugin` utility:
+
+```diff
+- export default defineNitroPlugin((nitroApp) => {
++ import { definePlugin } from "nitro"
++
++ export default definePlugin((nitroApp) => {
+```
+
 Runtime utils moved to dedicated `nitro/*` subpaths:
 
 | Capability | v3 import |

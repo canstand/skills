@@ -23,7 +23,7 @@ export default defineHandler((event) => {
 event.req            // web Request
 event.res            // response init (headers, status)
 event.url            // URL object (event.url.pathname, event.url.searchParams)
-event.path           // request path
+event.url.pathname    // request pathname
 event.method         // HTTP method
 event.context        // mutable per-request context (params, custom data)
 event.context.params // route params
@@ -144,7 +144,7 @@ In dev, browsers (Accept: text/html) get an HTML error page; production always r
 
 ## Route rules
 
-Apply per-route behavior (caching, headers, redirects, proxy, auth) by glob pattern. Rules merge least-specific to most-specific; set a rule to `false` to disable an inherited one.
+Apply per-route behavior (caching, headers, redirects, proxy, or CORS) by glob pattern. Rules are based on [H3 route rules](https://h3.dev/guide/rules), merge least-specific to most-specific, and accept `false` to disable an inherited rule.
 
 ```ts [nitro.config.ts]
 import { defineConfig } from "nitro";
@@ -156,19 +156,69 @@ export default defineConfig({
     "/api/data/**": { cache: { maxAge: 60 } },  // full cache options
     "/api/realtime/**": { cache: false },       // disable caching
     "/assets/**": { headers: { "cache-control": "s-maxage=0" } },
-    "/api/v1/**": { cors: true, headers: { "access-control-allow-methods": "GET" } },
+    "/api/**": { cors: true },                  // permissive CORS
     "/old-page": { redirect: "/new-page" },     // 307 by default
     "/legacy": { redirect: { to: "https://example.com/", status: 308 } },
     "/old-blog/**": { redirect: "https://blog.example.com/**" }, // wildcard preserves suffix
     "/proxy/**": { proxy: "https://api.example.com/**" },
-    "/admin/**": { basicAuth: { username: "admin", password: "secret" } },
     "/about": { prerender: true },
     "/isr/**": { isr: 60 },                      // Vercel ISR
   },
 });
 ```
 
-Route rule keys: `headers`, `redirect`, `proxy`, `cors`, `cache`, `swr`, `static`, `basicAuth`, `prerender`, `isr`. `swr: true` is shorthand for `cache: { swr: true }`; `swr: <n>` adds `maxAge: <n>`. Rules can also be supplied via `runtimeConfig.nitro.routeRules` for env-var overrides without rebuilding.
+### Method-scoped rules
+
+Prefix a rule key with an uppercase HTTP method and a space to apply it only to that method. Method-scoped rules merge on top of matching method-agnostic rules:
+
+```ts [nitro.config.ts]
+import { defineConfig } from "nitro";
+
+export default defineConfig({
+  routeRules: {
+    "/api/**": { headers: { "x-api": "true" } },
+    "POST /api/**": { headers: { "x-write": "true" } },
+    "GET /feed": { swr: 600 },
+  },
+});
+```
+
+This is resolved by the runtime. Platform-generated static config (for example Netlify/Cloudflare `_headers` and `_redirects`, or Vercel `config.json`) cannot split rules by method, so use method-agnostic keys for rules emitted there.
+
+### CORS
+
+`cors: true` applies permissive CORS defaults. Nitro handles it at runtime via H3: simple requests receive `access-control-allow-origin: *` and `access-control-expose-headers: *`; `OPTIONS` preflights are answered directly with `204` and matching `access-control-allow-*` headers.
+
+Pass an object for an origin allowlist, credentials, `maxAge`, and other H3 `CorsOptions`. CORS is not emitted into static/CDN config, so it only applies when a request reaches the server handler. Do not combine `credentials: true` with a wildcard origin.
+
+```ts [nitro.config.ts]
+export default defineConfig({
+  routeRules: {
+    "/api/public/**": { cors: true },
+    "/api/v1/**": { cors: { origin: ["https://app.example.com"], credentials: true } },
+  },
+});
+```
+
+See H3's [`handleCors`](https://h3.dev/utils/security#handlecorsevent-options) for the underlying behavior.
+
+### Authentication
+
+There is no `auth` route rule: authentication requires executable logic, so put it in middleware. For one route, use H3's `basicAuth` middleware:
+
+```ts [routes/admin/index.ts]
+import { defineHandler } from "nitro";
+import { basicAuth } from "nitro/h3";
+
+export default defineHandler({
+  middleware: [basicAuth({ username: "admin", password: "supersecret", realm: "Admin Area" })],
+  handler: (event) => `Hello, ${event.context.basicAuth?.username}!`,
+});
+```
+
+For a subtree, register route-scoped middleware or place it in the global `middleware/` directory.
+
+Route rule keys: `headers`, `redirect`, `proxy`, `cors`, `cache`, `swr`, `static`, `prerender`, `isr`. `swr: true` is shorthand for `cache: { swr: true }`; `swr: <n>` adds `maxAge: <n>`. Rules can also be supplied via `runtimeConfig.nitro.routeRules` for env-var overrides without rebuilding.
 
 ## Key Points
 
@@ -176,7 +226,7 @@ Route rule keys: `headers`, `redirect`, `proxy`, `cors`, `cache`, `swr`, `static
 - Use `event.req.json()/text()/formData()` instead of v2 `readBody`.
 - Params live on `event.context.params`; the `!` non-null assertion is common in TS.
 - Each route handler is a separate code-split chunk (set `inlineDynamicImports: true` to bundle into one file).
-- Route rules wrap matching handlers in caching, proxying, redirects, and auth without handler code.
+- Route rules add caching, proxying, redirects, headers, and CORS without handler code.
 
 <!--
 Source references:

@@ -1,9 +1,9 @@
 ---
 name: pinia
-description: Pinia official Vue state management library, type-safe and extensible. Use when defining stores, working with state/getters/actions, or implementing store patterns in Vue apps.
+description: Pinia v4 official Vue state management library, type-safe and extensible. Use when defining stores, working with state/getters/actions, or implementing store patterns in Vue apps.
 metadata:
   author: Anthony Fu
-  version: "2026.1.28"
+  version: "2026.8.30"
   source: Generated from https://github.com/vuejs/pinia, scripts located at https://github.com/antfu/skills
 ---
 
@@ -11,7 +11,7 @@ metadata:
 
 Pinia is the official state management library for Vue, designed to be intuitive and type-safe. It supports both Options API and Composition API styles, with first-class TypeScript support and devtools integration.
 
-> The skill is based on Pinia v3.0.4, generated at 2026-01-28.
+> The skill is based on Pinia v4.0.3, generated at 2026-08-30.
 
 ## Core References
 
@@ -57,3 +57,4 @@ Pinia is the official state management library for Vue, designed to be intuitive
 - **Call stores inside functions** not at module scope, especially for SSR
 - **Add HMR support** to each store for better development experience
 - **Use `@pinia/testing`** for component tests with mocked stores
+- **Install `@vue/devtools-api`** alongside Pinia v4; it is a required peer dependency

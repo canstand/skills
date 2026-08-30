@@ -71,6 +71,10 @@ export default defineConfig({
       connector: "postgresql",
       options: { url: "postgresql://user:pass@host:5432/db" },
     },
+    analytics: {
+      connector: "mysql2",
+      options: { host: "localhost", port: 3306, user: "root", database: "analytics" },
+    },
   },
   // Use a local SQLite db in development while prod uses Postgres
   devDatabase: {
@@ -79,11 +83,17 @@ export default defineConfig({
 });
 ```
 
+Connector-specific settings (`url`, `host`, `name`, etc.) belong under `options`, not at the top level. See the [db0 connector docs](https://db0.unjs.io/connectors) for accepted options.
+
 Use a named connection with `useDatabase("users")`.
 
 ## Connectors
 
-All [db0 connectors](https://db0.unjs.io/connectors) are supported, including: `sqlite` / `node-sqlite`, `better-sqlite3`, `bun-sqlite`, `libsql` (+ `libsql-http`/`libsql-web`), `postgresql`, `mysql2`, `pglite`, `planetscale`, `cloudflare-d1`, and Cloudflare Hyperdrive variants.
+All [db0 connectors](https://db0.unjs.io/connectors) are supported, including: `sqlite` / `node-sqlite`, `better-sqlite3`, `bun-sqlite`, `libsql` (+ `libsql-http`/`libsql-web`/`libsql-core`), `postgresql`, `mysql2`, `pglite`, `planetscale`, `neon`, `cloudflare-d1`, and Cloudflare Hyperdrive variants.
+
+### Connector dependencies
+
+Some connectors need third-party libraries (for example, `postgresql` needs [`pg`](https://www.npmjs.com/package/pg)). Nitro detects missing libraries, offers to install them (automatically in CI), and passes installed libraries through the connector's `lib` option so bundlers can resolve them.
 
 ## Key Points
 

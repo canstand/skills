@@ -61,6 +61,10 @@ export default defineConfig({
 
 Then `useStorage("redis")` / `useStorage("db")`. See the [unstorage drivers list](https://unstorage.unjs.io) (fs, memory, redis, cloudflare-kv, s3, ...).
 
+### Driver dependencies
+
+Some drivers need third-party libraries (for example, `redis` requires [`ioredis`](https://www.npmjs.com/package/ioredis)). Nitro detects missing dependencies, offers to install them (automatically in CI), and passes installed libraries through the driver's `lib` option so bundlers can resolve them.
+
 ## Built-in mount points
 
 - **Default** (no base): in-memory, not persisted. Mount an `fs`/`redis` driver to persist.

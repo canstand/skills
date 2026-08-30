@@ -42,7 +42,7 @@ import { definePlugin } from "nitro";
 
 export default definePlugin((nitroApp) => {
   nitroApp.hooks.hook("request", (event) => {
-    console.log("→", event.path);
+    console.log("→", event.url.pathname);
   });
 
   nitroApp.hooks.hook("response", (res, event) => {
@@ -65,7 +65,7 @@ import { definePlugin } from "nitro";
 
 export default definePlugin((nitroApp) => {
   nitroApp.hooks.hook("error", (error, { event, tags }) => {
-    console.error(`[${tags?.join(",")}] ${event?.path}`, error);
+    console.error(`[${tags?.join(",")}] ${event?.url.pathname}`, error);
   });
 
   // Manually report

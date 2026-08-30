@@ -1,290 +1,84 @@
 ---
 name: lifecycle-hooks
-description: Nuxt and Nitro hooks for extending build-time and runtime behavior
+description: Nuxt build hooks, app runtime hooks, and Nitro server hooks
 ---
 
 # Lifecycle Hooks
 
-Nuxt provides hooks to tap into the build process, application lifecycle, and server runtime.
+Use Nuxt hooks for build/configuration work, app hooks for browser/runtime behavior, and Nitro hooks for server requests. Prefer documented hook names and keep hook callbacks small.
 
-## Build-time Hooks (Nuxt)
+## Build-time Nuxt hooks
 
-Used in `nuxt.config.ts` or modules:
-
-### In nuxt.config.ts
+Configure hooks in `nuxt.config.ts` or register them from a module:
 
 ```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
+// modules/routes.ts
+import { defineNuxtModule } from '@nuxt/kit'
+
+export default defineNuxtModule({
   hooks: {
-    'build:before': () => {
-      console.log('Build starting...')
-    },
-    'pages:extend': (pages) => {
-      // Add custom pages
+    'pages:extend'(pages) {
       pages.push({
-        name: 'custom',
-        path: '/custom',
-        file: '~/pages/custom.vue',
+        name: 'health',
+        path: '/health',
+        file: './runtime/pages/health.vue',
       })
     },
-    'components:dirs': (dirs) => {
-      // Add component directories
-      dirs.push({ path: '~/extra-components' })
+    'imports:extend'(imports) {
+      imports.push({ name: 'useFeature', from: '#my-module' })
     },
   },
 })
 ```
 
-### In Modules
+Useful hooks include `ready`, `close`, `modules:before`, `modules:done`, `module:before`, `module:done`, `app:resolve`, `app:templates`, `build:before`, `build:done`, `pages:extend`, `pages:resolved`, `components:dirs`, `components:extend`, `imports:extend`, `nitro:config`, `nitro:init`, `prerender:routes`, `prepare:types`, and `builder:watch`.
+
+`vite:extendConfig` and `vite:configResolved` are deprecated for the forward Nuxt 5/Vite Environment API model and should not be the basis of new integrations; use a Vite plugin with `applyToEnvironment()` instead.
+
+## Runtime app hooks
+
+Register hooks in a plugin or composable:
 
 ```ts
-// modules/my-module.ts
-export default defineNuxtModule({
-  setup(options, nuxt) {
-    nuxt.hook('ready', async (nuxt) => {
-      console.log('Nuxt is ready')
-    })
-
-    nuxt.hook('close', async (nuxt) => {
-      console.log('Nuxt is closing')
-    })
-
-    nuxt.hook('modules:done', () => {
-      console.log('All modules loaded')
-    })
-  },
-})
-```
-
-### Common Build Hooks
-
-| Hook | When |
-|------|------|
-| `ready` | Nuxt initialization complete |
-| `close` | Nuxt is closing |
-| `modules:done` | All modules installed |
-| `build:before` | Before build starts |
-| `build:done` | Build complete |
-| `pages:extend` | Add/modify routes (before meta scan) |
-| `pages:resolved` | After page meta is scanned (with `scanPageMeta`) |
-| `components:dirs` | Component dirs being resolved |
-| `imports:extend` | Auto-imports being resolved |
-| `nitro:config` | Before Nitro config finalized |
-| `vite:extend` | Vite context created |
-| `vite:extendConfig` | Before Vite config finalized |
-
-## App Hooks (Runtime)
-
-Used in plugins and composables:
-
-### In Plugins
-
-```ts
-// plugins/lifecycle.ts
+// app/plugins/analytics.client.ts
 export default defineNuxtPlugin((nuxtApp) => {
-  nuxtApp.hook('app:created', (vueApp) => {
-    console.log('Vue app created')
-  })
-
-  nuxtApp.hook('app:mounted', (vueApp) => {
-    console.log('App mounted')
-  })
-
-  nuxtApp.hook('page:start', () => {
-    console.log('Page navigation starting')
-  })
-
   nuxtApp.hook('page:finish', () => {
-    console.log('Page navigation finished')
-  })
-
-  nuxtApp.hook('page:loading:start', () => {
-    console.log('Page loading started')
-  })
-
-  nuxtApp.hook('page:loading:end', () => {
-    console.log('Page loading ended')
+    analytics.track('pageview', { path: useRoute().path })
   })
 })
 ```
 
-### Common App Hooks
+Common hooks: `app:created`, `app:error`, `app:mounted`, `app:data:refresh`, `link:prefetch`, `page:start`, `page:finish`, `page:loading:start`, and `page:loading:end`. `useRuntimeHook` is useful when a component needs to register a runtime hook directly.
 
-| Hook | When |
-|------|------|
-| `app:created` | Vue app created |
-| `app:mounted` | Vue app mounted (client only) |
-| `app:error` | Fatal error occurred |
-| `page:start` | Page navigation starting |
-| `page:finish` | Page navigation finished |
-| `page:loading:start` | Loading indicator should show |
-| `page:loading:end` | Loading indicator should hide |
-| `link:prefetch` | Link is being prefetched |
+## Nitro hooks
 
-### Using Runtime Hooks
-
-```ts
-// composables/usePageTracking.ts
-export function usePageTracking() {
-  const nuxtApp = useNuxtApp()
-
-  nuxtApp.hook('page:finish', () => {
-    trackPageView(useRoute().path)
-  })
-}
-```
-
-## Server Hooks (Nitro)
-
-Used in server plugins:
+Use a Nitro plugin with the current explicit import:
 
 ```ts
 // server/plugins/hooks.ts
-export default defineNitroPlugin((nitroApp) => {
-  // Modify HTML before sending
-  nitroApp.hooks.hook('render:html', (html, { event }) => {
-    html.head.push('<meta name="custom" content="value">')
-    html.bodyAppend.push('<script>console.log("injected")</script>')
-  })
+import { definePlugin } from 'nitro'
 
-  // Modify response
-  nitroApp.hooks.hook('render:response', (response, { event }) => {
-    console.log('Sending response:', response.statusCode)
+export default definePlugin((nitro) => {
+  nitro.hooks.hook('request', (event) => {
+    console.log(event.req.method, event.req.url)
   })
-
-  // Before request
-  nitroApp.hooks.hook('request', (event) => {
-    console.log('Request:', event.path)
-  })
-
-  // After response
-  nitroApp.hooks.hook('afterResponse', (event) => {
-    console.log('Response sent')
+  nitro.hooks.hook('render:html', (html) => {
+    html.head.push('<meta name="x-app" content="nuxt">')
   })
 })
 ```
 
-### Common Nitro Hooks
+Important hooks include `request`, `response`, `render:html`, `render:response`, `render:island`, `error`, and `close`. Check the Nitro version's hook types when writing server integrations because request/response arguments follow its Web API model.
 
-| Hook | When |
-|------|------|
-| `request` | Request received |
-| `beforeResponse` | Before sending response |
-| `afterResponse` | After response sent |
-| `render:html` | Before HTML is sent |
-| `render:response` | Before response is finalized |
-| `error` | Error occurred |
+## Custom hook types
 
-## Custom Hooks
+Augment `@nuxt/schema` for build hooks and `#app` for runtime hooks. Use `nitro/types` for Nitro type augmentation.
 
-### Define Custom Hook Types
-
-```ts
-// types/hooks.d.ts
-import type { HookResult } from '@nuxt/schema'
-
-declare module '#app' {
-  interface RuntimeNuxtHooks {
-    'my-app:event': (data: MyEventData) => HookResult
-  }
-}
-
-declare module '@nuxt/schema' {
-  interface NuxtHooks {
-    'my-module:init': () => HookResult
-  }
-}
-
-declare module 'nitropack/types' {
-  interface NitroRuntimeHooks {
-    'my-server:event': (data: any) => void
-  }
-}
-```
-
-### Call Custom Hooks
-
-```ts
-// In a plugin
-export default defineNuxtPlugin((nuxtApp) => {
-  // Call custom hook
-  nuxtApp.callHook('my-app:event', { type: 'custom' })
-})
-
-// In a module
-export default defineNuxtModule({
-  setup(options, nuxt) {
-    nuxt.callHook('my-module:init')
-  },
-})
-```
-
-## useRuntimeHook
-
-Call hooks at runtime from components:
-
-```vue
-<script setup lang="ts">
-// Register a callback for a runtime hook
-useRuntimeHook('app:error', (error) => {
-  console.error('App error:', error)
-})
-</script>
-```
-
-## Hook Examples
-
-### Page View Tracking
-
-```ts
-// plugins/analytics.client.ts
-export default defineNuxtPlugin((nuxtApp) => {
-  nuxtApp.hook('page:finish', () => {
-    const route = useRoute()
-    analytics.track('pageview', {
-      path: route.path,
-      title: document.title,
-    })
-  })
-})
-```
-
-### Performance Monitoring
-
-```ts
-// plugins/performance.client.ts
-export default defineNuxtPlugin((nuxtApp) => {
-  let navigationStart: number
-
-  nuxtApp.hook('page:start', () => {
-    navigationStart = performance.now()
-  })
-
-  nuxtApp.hook('page:finish', () => {
-    const duration = performance.now() - navigationStart
-    console.log(`Navigation took ${duration}ms`)
-  })
-})
-```
-
-### Inject HTML
-
-```ts
-// server/plugins/inject.ts
-export default defineNitroPlugin((nitroApp) => {
-  nitroApp.hooks.hook('render:html', (html) => {
-    html.head.push(`
-      <script>
-        window.APP_CONFIG = ${JSON.stringify(config)}
-      </script>
-    `)
-  })
-})
-```
-
-<!-- 
+<!--
 Source references:
 - https://nuxt.com/docs/4.x/guide/going-further/hooks
 - https://nuxt.com/docs/4.x/api/advanced/hooks
+- https://nuxt.com/docs/4.x/api/kit/modules
+- https://nuxt.com/docs/4.x/api/kit/nitro
+- https://vite.dev/guide/api-environment
 -->

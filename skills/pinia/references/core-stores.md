@@ -187,8 +187,12 @@ cartStore.$subscribe((mutation, state) => {
 })
 
 // Options
-cartStore.$subscribe(callback, { flush: 'sync' }) // Immediate
+cartStore.$subscribe(callback, { flush: 'sync' }) // Immediate, runs for every mutation
 cartStore.$subscribe(callback, { detached: true }) // Keep after unmount
+
+// `flush: 'sync'` runs after every mutation rather than batching; avoid heavy work
+// in this callback. It also observes a direct mutation immediately following a
+// `$patch()` in the same tick, which a default subscription may not observe.
 ```
 
 ---

@@ -42,7 +42,9 @@ export default defineConfig({
 });
 ```
 
-Config can also live under a `nitro` key in `package.json` or in a `.nitrorc` file.
+### Supported configuration files
+
+From the project root, c12 checks the first matching file in this order: `nitro.config.{js,ts,mjs,cjs,mts,cts,json,jsonc,json5,yaml,yml,toml}`, `.config/nitro.{...}`, then `.config/nitro.config.{...}`. `nitro.config.ts` is the recommended convention. An extensionless `.nitrorc` file using `key=value` syntax is also loaded with lower priority than the main config. With Vite, options can instead be placed under `nitro` in `vite.config.ts`.
 
 ## Key options
 
@@ -53,9 +55,10 @@ Config can also live under a `nitro` key in `package.json` or in a `.nitrorc` fi
 | `runtimeConfig` | Runtime values overridable via `NITRO_*` env vars. |
 | `storage` / `devStorage` | unstorage mounts (prod / dev override). |
 | `database` / `devDatabase` | DB connections (requires `experimental.database`). |
-| `routeRules` | Per-route caching, headers, redirects, proxy, auth. |
+| `routeRules` | Per-route caching, headers, redirects, proxy, and CORS. |
 | `serverDir` | Scan dir for `api/`, `routes/`, `middleware/`, `plugins/`, `utils/`, `tasks/`, `assets/`. `"./"` or `"./server"`. |
 | `serverEntry` / `renderer` | Global fetch handler / catch-all renderer. |
+| `serveStatic` | Serve production `public/` assets with `boolean`, `"node"`, or `"inline"` (no `"deno"`). |
 | `features` | Built-in features (e.g. `websocket`). |
 | `experimental` | Opt-in features (`tasks`, `database`, `openAPI`, `asyncContext`, `envExpansion`). |
 | `prerender` | `{ routes, crawlLinks, failOnError, concurrency }` for static generation. |

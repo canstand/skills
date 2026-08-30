@@ -60,7 +60,7 @@ useHead({ title: 'My Page' })
 useSeoMeta({ description: 'Page description' })
 
 // Accessibility — announce content to screen readers
-const { polite, assertive } = useAnnouncer() // needs <NuxtAnnouncer> (Nuxt 4.4+)
+const { polite, assertive } = useAnnouncer() // needs <NuxtAnnouncer>
 const { set } = useRouteAnnouncer()           // automatic on navigation
 
 // Request helpers (SSR)
@@ -70,11 +70,11 @@ const url = useRequestURL()
 </script>
 ```
 
-> **Nuxt 4 / Nitro:** in server routes, `useRuntimeConfig()` is called without the `event` argument.
+> In current Nitro server routes, call `useRuntimeConfig()` without an `event` argument.
 
 ### useAnnouncer (Accessibility)
 
-Manually announce dynamic content (form validation, toasts, loading) to screen readers. Requires `<NuxtAnnouncer>` in your app. Available in Nuxt 4.4.2+.
+Manually announce dynamic content (form validation, toasts, loading) to screen readers. Add `<NuxtAnnouncer>` once in your app, then use `polite()` or `assertive()`.
 
 ```vue
 <script setup lang="ts">
@@ -221,7 +221,7 @@ export default defineEventHandler(() => {
 
 ## Shared Utilities (`shared/`)
 
-Code auto-imported in **both** the Vue app and the Nitro server (Nuxt 3.14+). Only `shared/utils/` and `shared/types/` top-level files are auto-imported. Must not import Vue or Nitro code.
+Code auto-imported in **both** the Vue app and the Nitro server. Only top-level files in `shared/utils/` and `shared/types/` are auto-imported by default. Shared code must not import Vue or Nitro runtime code.
 
 ```ts
 // shared/utils/capitalize.ts

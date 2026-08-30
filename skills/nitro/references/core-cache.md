@@ -34,18 +34,18 @@ Cache any async function (e.g. an upstream API call) and reuse it across handler
 import { defineHandler, type H3Event } from "nitro";
 import { defineCachedFunction } from "nitro/cache";
 
-const cachedGHStars = defineCachedFunction(async (repo: string) => {
+const cachedGHStars = defineCachedFunction(async (event: H3Event, repo: string) => {
   const data = await fetch(`https://api.github.com/repos/${repo}`).then((r) => r.json());
   return data.stargazers_count;
 }, {
   maxAge: 60 * 60,
   name: "ghStars",
-  getKey: (repo: string) => repo,
+  getKey: (event: H3Event, repo: string) => repo,
 });
 
 export default defineHandler(async (event) => {
   const { repo } = event.context.params!;
-  const stars = await cachedGHStars(repo).catch(() => 0);
+  const stars = await cachedGHStars(event, repo).catch(() => 0);
   return { repo, stars };
 });
 ```

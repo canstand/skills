@@ -1,265 +1,84 @@
 ---
 name: server-routes
-description: API routes, server middleware, and Nitro server engine in Nuxt
+description: Nitro API routes, server middleware, plugins, request handling, and storage in Nuxt
 ---
 
 # Server Routes
 
-Nuxt includes Nitro server engine for building full-stack applications with API routes and server middleware.
+Nuxt scans root-level `server/` directories and registers Nitro handlers with HMR.
 
-## API Routes
+```text
+server/
+├── api/hello.get.ts       # GET /api/hello
+├── routes/sitemap.xml.ts  # /sitemap.xml
+├── middleware/auth.ts     # every request
+├── plugins/db.ts
+└── utils/db.ts
+```
 
-Create files in `server/api/` directory:
+A handler should export `defineEventHandler` (auto-imported, or explicitly from `nitro/h3`). HTTP method suffixes (`.get`, `.post`, `.put`, etc.) and bracket parameters are supported.
 
 ```ts
-// server/api/hello.ts
+// server/api/users/[id].get.ts
+import { defineEventHandler, getRouterParam } from 'nitro/h3'
+
 export default defineEventHandler((event) => {
-  return { message: 'Hello World' }
+  const user = findUser(getRouterParam(event, 'id'))
+  if (!user) throw createError({ status: 404, statusText: 'User not found' })
+  return user
 })
 ```
 
-Access at `/api/hello`.
+Read input with `getQuery`, `readBody`, and `getRouterParam`; use validated variants with a schema library for untrusted input. Handlers may return JSON, a promise, or a `Response`/stream. Use `event.$fetch` in server routes when forwarding request context/headers, and `event.waitUntil(promise)` for work that should finish after sending the response.
 
-### HTTP Methods
+## Middleware, plugins, and utilities
 
-```ts
-// server/api/users.get.ts - GET /api/users
-export default defineEventHandler(() => {
-  return getUsers()
-})
-
-// server/api/users.post.ts - POST /api/users
-export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
-  return createUser(body)
-})
-
-// server/api/users/[id].put.ts - PUT /api/users/:id
-export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id')
-  const body = await readBody(event)
-  return updateUser(id, body)
-})
-
-// server/api/users/[id].delete.ts - DELETE /api/users/:id
-export default defineEventHandler((event) => {
-  const id = getRouterParam(event, 'id')
-  return deleteUser(id)
-})
-```
-
-### Route Parameters
-
-```ts
-// server/api/posts/[id].ts
-export default defineEventHandler((event) => {
-  const id = getRouterParam(event, 'id')
-  return getPost(id)
-})
-
-// Catch-all: server/api/[...path].ts
-export default defineEventHandler((event) => {
-  const path = getRouterParam(event, 'path')
-  return { path }
-})
-```
-
-### Query Parameters
-
-```ts
-// server/api/search.ts
-// GET /api/search?q=nuxt&page=1
-export default defineEventHandler((event) => {
-  const query = getQuery(event)
-  // { q: 'nuxt', page: '1' }
-  return search(query.q, Number(query.page))
-})
-```
-
-### Request Body
-
-```ts
-// server/api/submit.post.ts
-export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
-  // Validate and process body
-  return { success: true, data: body }
-})
-```
-
-### Headers and Cookies
-
-```ts
-// server/api/auth.ts
-export default defineEventHandler((event) => {
-  // Read headers
-  const auth = getHeader(event, 'authorization')
-
-  // Read cookies
-  const cookies = parseCookies(event)
-  const token = getCookie(event, 'token')
-
-  // Set headers
-  setHeader(event, 'X-Custom-Header', 'value')
-
-  // Set cookies
-  setCookie(event, 'token', 'new-token', {
-    httpOnly: true,
-    secure: true,
-    maxAge: 60 * 60 * 24, // 1 day
-  })
-
-  return { authenticated: !!token }
-})
-```
-
-## Server Middleware
-
-Runs on every request before routes:
+Server middleware runs before routes, should not return a response, and can extend `event.context`:
 
 ```ts
 // server/middleware/auth.ts
 export default defineEventHandler((event) => {
-  const token = getCookie(event, 'token')
-
-  // Attach data to event context
-  event.context.user = token ? verifyToken(token) : null
-})
-
-// server/middleware/log.ts
-export default defineEventHandler((event) => {
-  console.log(`${event.method} ${event.path}`)
+  event.context.user = getCookie(event, 'session')
 })
 ```
 
-Access context in routes:
+Server plugins use Nitro's current explicit API:
 
 ```ts
-// server/api/profile.ts
-export default defineEventHandler((event) => {
-  const user = event.context.user
-  if (!user) {
-    throw createError({ statusCode: 401, message: 'Unauthorized' })
-  }
-  return user
-})
-```
+// server/plugins/log.ts
+import { definePlugin } from 'nitro'
 
-## Error Handling
-
-```ts
-// server/api/users/[id].ts
-export default defineEventHandler((event) => {
-  const id = getRouterParam(event, 'id')
-  const user = findUser(id)
-
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'User not found',
-    })
-  }
-
-  return user
-})
-```
-
-## Server Utils
-
-Auto-imported in `server/utils/`:
-
-```ts
-// server/utils/db.ts
-export function useDb() {
-  return createDbConnection()
-}
-```
-
-```ts
-// server/api/users.ts
-export default defineEventHandler(() => {
-  const db = useDb() // Auto-imported
-  return db.query('SELECT * FROM users')
-})
-```
-
-## Server Plugins
-
-Run once when server starts:
-
-```ts
-// server/plugins/db.ts
-export default defineNitroPlugin((nitroApp) => {
-  // Initialize database connection
-  const db = createDbConnection()
-
-  // Add to context
-  nitroApp.hooks.hook('request', (event) => {
-    event.context.db = db
+export default definePlugin((nitro) => {
+  nitro.hooks.hook('request', (event) => {
+    console.log(event.req.method, event.req.url)
   })
 })
 ```
 
-## Streaming Responses
+Put server-only helpers in `server/utils/`; they are auto-imported in the server context. Keep app and server code separate. `#server/...` provides stable server-local imports.
+
+## Runtime config, cookies, and storage
+
+Use `useRuntimeConfig()` without an event argument in server handlers. Read cookies with `parseCookies`/`getCookie`, and set them with `setCookie`. Keep secrets in private runtime config keys.
+
+Nitro's cross-platform storage layer is available through `useStorage()`:
 
 ```ts
-// server/api/stream.ts
-export default defineEventHandler((event) => {
-  setHeader(event, 'Content-Type', 'text/event-stream')
-  setHeader(event, 'Cache-Control', 'no-cache')
-  setHeader(event, 'Connection', 'keep-alive')
-
-  const stream = new ReadableStream({
-    async start(controller) {
-      for (let i = 0; i < 10; i++) {
-        controller.enqueue(`data: ${JSON.stringify({ count: i })}\n\n`)
-        await new Promise(r => setTimeout(r, 1000))
-      }
-      controller.close()
-    },
-  })
-
-  return stream
+// server/api/cache.get.ts
+export default defineEventHandler(async () => {
+  const storage = useStorage('redis')
+  await storage.setItem('answer', 42)
+  return storage.getItem('answer')
 })
 ```
 
-## Server Storage
+Configure mounts in `nuxt.config.ts` under `nitro.storage`, or mount a driver from a server plugin.
 
-Key-value storage with multiple drivers:
-
-```ts
-// server/api/cache.ts
-export default defineEventHandler(async (event) => {
-  const storage = useStorage()
-
-  // Set value
-  await storage.setItem('key', { data: 'value' })
-
-  // Get value
-  const data = await storage.getItem('key')
-
-  return data
-})
-```
-
-Configure storage drivers in `nuxt.config.ts`:
-
-```ts
-export default defineNuxtConfig({
-  nitro: {
-    storage: {
-      redis: {
-        driver: 'redis',
-        url: 'redis://localhost:6379',
-      },
-    },
-  },
-})
-```
-
-<!-- 
+<!--
 Source references:
-- https://nuxt.com/docs/getting-started/server
-- https://nuxt.com/docs/directory-structure/server
+- https://nuxt.com/docs/4.x/getting-started/server
+- https://nuxt.com/docs/4.x/directory-structure/server
+- https://nuxt.com/docs/4.x/directory-structure/shared
 - https://nitro.build/guide
+- https://nitro.build/guide/storage
 -->

@@ -73,11 +73,62 @@ export default defineHandler(async (event) => {
 });
 ```
 
-Dev uses Miniflare to emulate bindings (define them in `wrangler.json`/`.toml` or inline via `cloudflare.wrangler`). `scheduledTasks` auto-generate Cron Triggers. Platform hooks: `cloudflare:scheduled`, `cloudflare:email`, `cloudflare:queue`, `cloudflare:tail`.
+Dev uses Miniflare to emulate bindings (define them in `wrangler.json`/`.toml` or inline via `cloudflare.wrangler`). Nitro resolves `miniflare` from your project and offers to install it on first use. `scheduledTasks` auto-generate Cron Triggers. Platform hooks: `cloudflare:scheduled`, `cloudflare:email`, `cloudflare:queue`, `cloudflare:tail`.
 
-**Vercel** (`vercel`): use `routes/api/` (not `api/`). `scheduledTasks` → Vercel Cron Jobs (secure with `CRON_SECRET`); `isr` route rules → ISR; external `proxy` route rules become CDN rewrites. Per-route function config via `vercel.functionRules`; Bun runtime via `vercel.functions.runtime`. Vercel Queues via the `vercel:queue` hook.
+Experimental tracing is available with `tracingChannel: true`; it reports Nitro events as Cloudflare custom spans without an OpenTelemetry SDK. Enable Worker tracing too:
+
+```ts
+export default defineConfig({ preset: "cloudflare_module", tracingChannel: true });
+```
+
+```jsonc
+// wrangler.jsonc
+{ "observability": { "traces": { "enabled": true } } }
+```
+
+**Vercel** (`vercel`): use `routes/api/` (not `api/`). `scheduledTasks` → Vercel Cron Jobs (secure with `CRON_SECRET`); `isr` route rules → ISR; external `proxy` route rules become CDN rewrites. Per-route function config via `vercel.functionRules`; Bun runtime via `vercel.functions.runtime`.
+
+Vercel Queues are configured in Nitro and consumed in a plugin:
+
+```ts [nitro.config.ts]
+export default defineConfig({
+  serverDir: "./server",
+  vercel: { queues: { triggers: [{ topic: "orders", retryAfterSeconds: 60 }] } },
+});
+```
+
+```ts [server/plugins/queues.ts]
+import { definePlugin } from "nitro";
+
+export default definePlugin((nitroApp) => {
+  nitroApp.hooks.hook("vercel:queue", ({ message, metadata }) => {
+    console.log(metadata.topicName, message);
+  });
+});
+```
+
+Send messages with `@vercel/queue` from a `defineHandler`. Vercel's local SDK delivers them directly to the hook.
+
+Vercel immutable static files are opt-in via `vercel.immutableStaticFiles: true` (or `NITRO_VERCEL_IMMUTABLE_STATIC_FILES_ENABLED`). They are emitted under the reserved `/_vercel/immutable/` path and require a root `baseURL`; the `VERCEL_HASH_SALT` variable can rotate paths. Nitro + Vite wires `buildAssetsDir` automatically, while custom client builds must use `nitro.options.buildAssetsDir` as their asset output directory.
 
 > Prefer Nitro's portable abstractions ([storage](core-storage.md), [database](features-database.md)) over low-level platform bindings for stability across targets.
+
+**Zerops** (`zerops`): configure Node.js 22 or static services with `zerops.yaml`. Set `NITRO_PRESET=zerops` for a server deployment or `zerops-static` for static output:
+
+```yaml [zerops.yaml]
+zerops:
+  - setup: app
+    build:
+      base: nodejs@22
+      envVariables:
+        NITRO_PRESET: zerops
+      buildCommands: [pnpm i, pnpm run build]
+      deployFiles: [.output, package.json, node_modules]
+    run:
+      base: nodejs@22
+      ports: [{ port: 3000, httpSupport: true }]
+      start: node .output/server/index.mjs
+```
 
 ## Key Points
 
@@ -93,4 +144,7 @@ Source references:
 - https://nitro.build/deploy/runtimes/node
 - https://nitro.build/deploy/providers/cloudflare
 - https://nitro.build/deploy/providers/vercel
+- https://nitro.build/deploy/providers/zerops
+- https://developers.cloudflare.com/workers/observability/traces/custom-spans/
+- https://vercel.com/docs/skew-protection
 -->

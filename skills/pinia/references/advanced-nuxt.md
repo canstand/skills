@@ -15,6 +15,8 @@ npx nuxi@latest module add pinia
 
 This installs both `@pinia/nuxt` and `pinia`. If `pinia` isn't installed, add it manually.
 
+> **Pinia v4:** `@vue/devtools-api` is a required peer dependency. If the module does not install it, add `pinia @vue/devtools-api` manually.
+>
 > **npm users:** If you get `ERESOLVE unable to resolve dependency tree`, add to `package.json`:
 > ```json
 > "overrides": { "vue": "latest" }

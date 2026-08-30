@@ -1,5 +1,5 @@
 # Sync Info
 
 - **Source:** `vendor/nuxt-ui/skills/nuxt-ui`
-- **Git SHA:** `e931bdf79700b95fe6298ae015b5a08bd7c4f82c`
-- **Synced:** 2026-07-16
+- **Git SHA:** `ae24311663cc8447c6e44b6045087c94d3ae4c71`
+- **Synced:** 2026-08-30

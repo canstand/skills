@@ -3,17 +3,17 @@ name: nitro
 description: Nitro is the framework-agnostic server toolkit (powering Nuxt) for building and deploying web servers anywhere. Use when working with nitro.config, server routes/event handlers, route rules, caching, storage, tasks, websockets, or deploying to Node/Bun/Deno/Cloudflare/Vercel.
 metadata:
   author: Anthony Fu
-  version: "2026.6.22"
+  version: "2026.8.30"
   source: Generated from https://github.com/nitrojs/nitro, scripts located at https://github.com/antfu/skills
 ---
 
-> The skill is based on Nitro v3 (beta), generated at 2026-06-22.
+> The skill is based on Nitro v3.0.260610-beta, generated at 2026-08-30.
 
 Nitro is a framework-agnostic, deployment-agnostic server toolkit powered by [H3](https://h3.dev) v2, [unstorage](https://unstorage.unjs.io), and Vite/Rolldown/Rollup. It powers Nuxt and works standalone. From one codebase it builds optimized output for Node.js, Bun, Deno, Cloudflare, Vercel, Netlify, and more.
 
 Key capabilities:
 - **Filesystem routing** with H3 v2 event handlers, dynamic params, and method suffixes.
-- **Route rules** for declarative caching, headers, redirects, proxying, and auth.
+- **Route rules** for declarative caching, headers, redirects, proxying, and CORS; executable auth via middleware.
 - **Caching** layer (cached handlers/functions, SWR) on top of **unstorage** KV.
 - **Runtime config** overridable via `NITRO_*` env vars.
 - **Tasks** (on-demand + scheduled/cron), **WebSockets**/SSE, a SQL **database** layer, and **OpenAPI** auto-docs.
@@ -41,6 +41,7 @@ Key capabilities:
 | WebSocket & SSE | `defineWebSocketHandler`, pub/sub, namespaces, event streams | [features-websocket](references/features-websocket.md) |
 | Database | Built-in SQL layer via db0, `useDatabase`, connectors | [features-database](references/features-database.md) |
 | OpenAPI | Auto spec from `defineRouteMeta`, Scalar/Swagger UIs | [features-openapi](references/features-openapi.md) |
+| Dynamic OG images | Generate image responses with Takumi | [features-takumi](references/features-takumi.md) |
 
 ## Advanced / Deployment
 

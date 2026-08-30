@@ -1,302 +1,100 @@
 ---
 name: data-fetching
-description: useFetch, useAsyncData, and $fetch for SSR-friendly data fetching
+description: SSR-safe useFetch, useAsyncData, $fetch, caching, and abortable data handlers
 ---
 
 # Data Fetching
 
-Nuxt provides composables for SSR-friendly data fetching that prevent double-fetching and handle hydration.
+Use `useFetch` for an API URL, `useAsyncData` for arbitrary async work, and `$fetch` for event-driven requests. The first two forward server results through the Nuxt payload so hydration does not repeat the request.
 
-## Overview
-
-- `$fetch` - Basic fetch utility (use for client-side events)
-- `useFetch` - SSR-safe wrapper around $fetch (use for component data)
-- `useAsyncData` - SSR-safe wrapper for any async function
-- `createUseFetch` / `createUseAsyncData` - factories to build typed custom composables with baked-in defaults
-
-## useFetch
-
-Primary composable for fetching data in components:
+## Choosing the API
 
 ```vue
 <script setup lang="ts">
-const { data, status, error, refresh, clear } = await useFetch('/api/posts')
-</script>
+// Initial page data: SSR-safe and typed from server routes
+const { data: posts, status, error } = await useFetch('/api/posts')
 
-<template>
-  <div v-if="status === 'pending'">Loading...</div>
-  <div v-else-if="error">Error: {{ error.message }}</div>
-  <div v-else>
-    <article v-for="post in data" :key="post.id">
-      {{ post.title }}
-    </article>
-  </div>
-</template>
-```
-
-### With Options
-
-```ts
-const { data } = await useFetch('/api/posts', {
-  // Query parameters
-  query: { page: 1, limit: 10 },
-  // Request body (for POST/PUT)
-  body: { title: 'New Post' },
-  // HTTP method
-  method: 'POST',
-  // Only pick specific fields
-  pick: ['id', 'title'],
-  // Transform response
-  transform: (posts) => posts.map(p => ({ ...p, slug: slugify(p.title) })),
-  // Custom key for caching
-  key: 'posts-list',
-  // Don't fetch on server
-  server: false,
-  // Don't block navigation
-  lazy: true,
-  // Don't fetch immediately
-  immediate: false,
-  // Default value
-  default: () => [],
-})
-```
-
-### Reactive Parameters
-
-```vue
-<script setup lang="ts">
-const page = ref(1)
-const { data } = await useFetch('/api/posts', {
-  query: { page }, // Automatically refetches when page changes
-})
-</script>
-```
-
-### Computed URL
-
-```vue
-<script setup lang="ts">
-const id = ref(1)
-const { data } = await useFetch(() => `/api/posts/${id.value}`)
-// Refetches when id changes
-</script>
-```
-
-## useAsyncData
-
-For wrapping any async function:
-
-```vue
-<script setup lang="ts">
-const { data, error } = await useAsyncData('user', () => {
-  return myCustomFetch('/user/profile')
-})
-</script>
-```
-
-### Multiple Requests
-
-```vue
-<script setup lang="ts">
-const { data } = await useAsyncData('cart', async () => {
-  const [coupons, offers] = await Promise.all([
-    $fetch('/api/coupons'),
-    $fetch('/api/offers'),
-  ])
-  return { coupons, offers }
-})
-</script>
-```
-
-## Custom Fetchers: createUseFetch / createUseAsyncData
-
-Factory macros that produce a fully typed custom composable with pre-defined options. Must be an **exported** declaration inside `app/composables/` (Nuxt injects dedup keys at build time).
-
-```ts
-// app/composables/useAPI.ts
-export const useAPI = createUseFetch({
-  baseURL: 'https://api.nuxt.com',
-  // shared interceptors, headers, etc.
-  onResponseError({ response }) {
-    if (response.status === 401) navigateTo('/login')
-  },
-})
-```
-
-```vue
-<script setup lang="ts">
-// Same signature/return as useFetch, with defaults applied
-const { data } = await useAPI('/modules')
-// Caller can still override any option
-const { data: other } = await useAPI('/modules', { baseURL: 'https://other.com' })
-</script>
-```
-
-**Default vs Override mode:**
-
-```ts
-// Plain object → options act as DEFAULTS (caller can override)
-export const useAPI = createUseFetch({ baseURL: '/api', lazy: true })
-
-// Function → options OVERRIDE caller's (enforce auth/baseURL)
-export const useAPI = createUseFetch(callerOptions => ({
-  baseURL: 'https://api.nuxt.com', // always enforced
-}))
-```
-
-Use the **function form** when you need `useNuxtApp()` (called in setup context, not module scope):
-
-```ts
-// app/composables/useAPI.ts
-export const useAPI = createUseFetch(callerOptions => ({
-  $fetch: useNuxtApp().$api as typeof $fetch,
-  ...callerOptions,
-}))
-```
-
-`createUseAsyncData` works identically for wrapping arbitrary async functions:
-
-```ts
-// app/composables/useCachedData.ts
-export const useCachedData = createUseAsyncData({
-  getCachedData(key, nuxtApp) {
-    return nuxtApp.payload.data[key] ?? nuxtApp.static.data[key]
-  },
-})
-```
-
-> Replaces the old "don't await your custom `useFetch` wrapper" caveat — use these factories instead of hand-rolled wrappers.
-
-## $fetch
-
-For client-side events (form submissions, button clicks):
-
-```vue
-<script setup lang="ts">
-async function submitForm() {
-  const result = await $fetch('/api/submit', {
-    method: 'POST',
-    body: { name: 'John' },
-  })
+async function submit() {
+  // Browser event: do not put this in setup for initial data
+  await $fetch('/api/posts', { method: 'POST', body: { title: 'New post' } })
 }
 </script>
 ```
 
-**Important**: Don't use `$fetch` alone in setup for initial data - it will fetch twice (server + client). Use `useFetch` or `useAsyncData` instead.
+`useFetch` and `useAsyncData` can be called without `await`. SSR still waits for the result, but `await` pauses the rest of setup and blocks client navigation. Without it, render loading/error states yourself. `lazy: true` or `useLazyFetch` explicitly makes navigation non-blocking; awaiting a lazy call does not make client navigation wait.
 
-## Return Values
-
-All composables return:
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `data` | `Ref<T>` | Fetched data (`undefined` until resolved) |
-| `error` | `Ref<Error>` | Error if request failed |
-| `status` | `Ref<'idle' \| 'pending' \| 'success' \| 'error'>` | Request status |
-| `pending` | `Ref<boolean>` | Whether a request is in progress |
-| `refresh` | `() => Promise` | Refetch data |
-| `execute` | `() => Promise` | Alias for refresh |
-| `clear` | `() => void` | Reset to default/idle and cancel pending requests |
-
-> Prefer `status` over `pending` for fine-grained state. `useFetch` no longer accepts a top-level `timeout` option (still available on `useAsyncData`); use a `cache` option (`'default'`, `'no-store'`, `false`, etc.) for Fetch cache control.
-
-## Lazy Fetching
-
-Don't block navigation:
+## `useFetch`
 
 ```vue
 <script setup lang="ts">
-// Using lazy option
-const { data, status } = await useFetch('/api/posts', { lazy: true })
-
-// Or use lazy variants
-const { data, status } = await useLazyFetch('/api/posts')
-const { data, status } = await useLazyAsyncData('key', fetchFn)
-</script>
-```
-
-## Refresh & Watch
-
-```vue
-<script setup lang="ts">
-const category = ref('tech')
-
+const page = ref(1)
 const { data, refresh } = await useFetch('/api/posts', {
-  query: { category },
-  // Auto-refresh when category changes
-  watch: [category],
+  query: { page }, // reactive options trigger refetches
+  pick: ['id', 'title'],
+  default: () => [],
+  key: 'posts',
 })
 
-// Manual refresh
-const refreshData = () => refresh()
+const id = ref('1')
+const { data: post } = await useFetch(() => `/api/posts/${id.value}`)
 </script>
 ```
 
-## Caching
+The URL may be a string, `Request`, ref, or getter. Reactive URL/options refetch automatically unless `watch: false`. `server: false` defers the first request until hydration completes. `immediate: false` requires `execute()`/`refresh()`.
 
-Data is cached by key. Share data across components:
+Important options include `server`, `lazy`, `immediate`, `enabled`, `dedupe: 'cancel' | 'defer'`, `timeout`, `cache`, `pick`, `transform`, `serialize`, and `getCachedData`. `data`, `error`, and `status` are refs; status is `idle | pending | success | error`.
+
+## `useAsyncData`
+
+Use a stable key and accept the abort signal in handlers:
 
 ```vue
 <script setup lang="ts">
-// In component A
-const { data } = await useFetch('/api/user', { key: 'current-user' })
-
-// In component B - uses cached data
-const { data } = useNuxtData('current-user')
+const { data } = await useAsyncData(
+  'dashboard',
+  (_nuxtApp, { signal }) => Promise.all([
+    $fetch('/api/user', { signal }),
+    $fetch('/api/stats', { signal }),
+  ]).then(([user, stats]) => ({ user, stats })),
+)
 </script>
 ```
 
-Refresh cached data globally:
+Handlers must be side-effect free and should return a truthy value. Use `callOnce` for side effects such as Pinia actions. The same key shares `data`, `error`, and `status`; keep handler, `deep`, `transform`, `pick`, `getCachedData`, and `default` consistent across calls. Use a different key for independent data.
+
+## Caching and refresh
 
 ```ts
-// Refresh specific key
+const { data } = await useFetch('/api/user', { key: 'current-user' })
+const cached = useNuxtData('current-user')
 await refreshNuxtData('current-user')
-
-// Refresh all data
-await refreshNuxtData()
-
-// Clear cached data
 clearNuxtData('current-user')
 ```
 
-## Interceptors
+Use `pick`/`transform` to keep unused fields out of the payload (they do not reduce the upstream response). Relative `useFetch` calls on the server proxy appropriate request headers/cookies. For raw `$fetch`, use `useRequestFetch()` or explicitly forward only safe headers.
+
+## Custom fetch composables
+
+Use the compiler macro rather than hand-written async wrappers:
 
 ```ts
-const { data } = await useFetch('/api/auth', {
-  onRequest({ options }) {
-    options.headers.set('Authorization', `Bearer ${token}`)
-  },
-  onRequestError({ error }) {
-    console.error('Request failed:', error)
-  },
-  onResponse({ response }) {
-    // Process response
-  },
+// app/composables/useAPI.ts
+export const useAPI = createUseFetch({
+  baseURL: 'https://api.example.com',
   onResponseError({ response }) {
-    if (response.status === 401) {
-      navigateTo('/login')
-    }
+    if (response.status === 401) return navigateTo('/login')
   },
 })
 ```
 
-## Passing Headers (SSR)
+A plain object supplies defaults; a function can enforce overrides or access `useNuxtApp()` at call time. The declaration must be exported and live in a scanned composables directory.
 
-`useFetch` automatically proxies cookies/headers from client to server. For `$fetch`:
-
-```vue
-<script setup lang="ts">
-const headers = useRequestHeaders(['cookie'])
-const data = await $fetch('/api/user', { headers })
-</script>
-```
-
-<!-- 
+<!--
 Source references:
 - https://nuxt.com/docs/4.x/getting-started/data-fetching
 - https://nuxt.com/docs/4.x/api/composables/use-fetch
 - https://nuxt.com/docs/4.x/api/composables/use-async-data
 - https://nuxt.com/docs/4.x/api/composables/create-use-fetch
 - https://nuxt.com/docs/4.x/api/composables/create-use-async-data
-- https://nuxt.com/docs/4.x/guide/recipes/custom-usefetch
+- https://nuxt.com/docs/4.x/api/composables/use-request-fetch
 -->

@@ -1,251 +1,11 @@
 ---
 name: built-in-components
-description: NuxtLink, NuxtPage, NuxtLayout, and other built-in Nuxt components
+description: NuxtLink, NuxtPage, NuxtLayout, client-only rendering, islands, and accessibility components
 ---
 
 # Built-in Components
 
-Nuxt provides several built-in components for common functionality.
-
-## NuxtLink
-
-Optimized link component with prefetching:
-
-```vue
-<template>
-  <!-- Basic usage -->
-  <NuxtLink to="/about">About</NuxtLink>
-
-  <!-- With route object -->
-  <NuxtLink :to="{ name: 'posts-id', params: { id: 1 } }">Post 1</NuxtLink>
-
-  <!-- External link (opens in new tab) -->
-  <NuxtLink to="https://nuxt.com" external>Nuxt</NuxtLink>
-
-  <!-- Disable prefetching -->
-  <NuxtLink to="/heavy-page" :prefetch="false">Heavy Page</NuxtLink>
-
-  <!-- Replace history instead of push -->
-  <NuxtLink to="/page" replace>Replace</NuxtLink>
-
-  <!-- Custom active class -->
-  <NuxtLink
-    to="/dashboard"
-    active-class="text-primary"
-    exact-active-class="font-bold"
-  >
-    Dashboard
-  </NuxtLink>
-</template>
-```
-
-## NuxtPage
-
-Renders the current page component (used in layouts):
-
-```vue
-<!-- app/app.vue -->
-<template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
-</template>
-```
-
-With page transitions:
-
-```vue
-<template>
-  <NuxtPage :transition="{ name: 'fade', mode: 'out-in' }" />
-</template>
-```
-
-Pass props to page:
-
-```vue
-<template>
-  <NuxtPage :page-key="route.fullPath" :foobar="123" />
-</template>
-```
-
-## NuxtLayout
-
-Controls layout rendering:
-
-```vue
-<!-- app/app.vue -->
-<template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
-</template>
-```
-
-Dynamic layout:
-
-```vue
-<template>
-  <NuxtLayout :name="layout">
-    <NuxtPage />
-  </NuxtLayout>
-</template>
-
-<script setup>
-const layout = computed(() => isAdmin ? 'admin' : 'default')
-</script>
-```
-
-Layout with transitions:
-
-```vue
-<template>
-  <NuxtLayout :transition="{ name: 'slide', mode: 'out-in' }">
-    <NuxtPage />
-  </NuxtLayout>
-</template>
-```
-
-## NuxtLoadingIndicator
-
-Progress bar for page navigation:
-
-```vue
-<!-- app/app.vue -->
-<template>
-  <NuxtLoadingIndicator
-    color="repeating-linear-gradient(to right, #00dc82 0%, #34cdfe 50%, #0047e1 100%)"
-    :height="3"
-    :duration="2000"
-    :throttle="200"
-  />
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
-</template>
-```
-
-## NuxtErrorBoundary
-
-Catch and handle errors in child components:
-
-```vue
-<template>
-  <NuxtErrorBoundary @error="handleError">
-    <ComponentThatMightFail />
-
-    <template #error="{ error, clearError }">
-      <div class="error">
-        <p>Something went wrong: {{ error.message }}</p>
-        <button @click="clearError">Try again</button>
-      </div>
-    </template>
-  </NuxtErrorBoundary>
-</template>
-
-<script setup>
-function handleError(error) {
-  console.error('Error caught:', error)
-}
-</script>
-```
-
-## ClientOnly
-
-Render content only on client-side:
-
-```vue
-<template>
-  <ClientOnly>
-    <!-- Browser-only component -->
-    <BrowserOnlyChart :data="chartData" />
-
-    <template #fallback>
-      <p>Loading chart...</p>
-    </template>
-  </ClientOnly>
-</template>
-```
-
-## DevOnly
-
-Render content only in development:
-
-```vue
-<template>
-  <DevOnly>
-    <DebugPanel />
-  </DevOnly>
-</template>
-```
-
-## NuxtIsland
-
-Server components (experimental):
-
-```vue
-<template>
-  <NuxtIsland name="HeavyComponent" :props="{ data: complexData }" />
-</template>
-```
-
-Islands render in their own isolated Vue app keyed on props (for cacheability). `useRoute()` and other vue-router composables inside an island reflect the island's own request, **not** the current page — pass route info in via props or the `context` prop. Props/context are sent as GET query params (may appear in logs/CDN caches).
-
-## NuxtImg and NuxtPicture
-
-Optimized images (requires `@nuxt/image` module):
-
-```vue
-<template>
-  <!-- Basic optimized image -->
-  <NuxtImg src="/images/hero.jpg" width="800" height="600" />
-
-  <!-- Responsive with srcset -->
-  <NuxtImg
-    src="/images/hero.jpg"
-    sizes="sm:100vw md:50vw lg:400px"
-    :modifiers="{ format: 'webp' }"
-  />
-
-  <!-- Art direction with picture -->
-  <NuxtPicture
-    src="/images/hero.jpg"
-    :img-attrs="{ alt: 'Hero image' }"
-  />
-</template>
-```
-
-## Teleport
-
-Render content outside component tree:
-
-```vue
-<template>
-  <button @click="showModal = true">Open Modal</button>
-
-  <Teleport to="body">
-    <div v-if="showModal" class="modal">
-      <p>Modal content</p>
-      <button @click="showModal = false">Close</button>
-    </div>
-  </Teleport>
-</template>
-```
-
-For SSR, use `<ClientOnly>` with Teleport:
-
-```vue
-<template>
-  <ClientOnly>
-    <Teleport to="#teleports">
-      <Modal />
-    </Teleport>
-  </ClientOnly>
-</template>
-```
-
-## NuxtRouteAnnouncer
-
-Accessibility: automatically announces page changes (from the page `<title>`) to screen readers:
+## App shell
 
 ```vue
 <!-- app/app.vue -->
@@ -257,35 +17,61 @@ Accessibility: automatically announces page changes (from the page `<title>`) to
 </template>
 ```
 
-## NuxtAnnouncer
+- `<NuxtLink>` renders optimized internal links, prefetching components/payload when observed. Use `external`, `replace`, `prefetch="false"`, or route-object props as needed.
+- `<NuxtPage>` renders the current page and accepts `page-key`, page props, and transition options.
+- `<NuxtLayout>` selects a layout and accepts transition options or a layout name.
+- `<NuxtLoadingIndicator>` shows navigation progress.
+- `<NuxtErrorBoundary>` catches descendant errors and exposes an error slot with `clearError`.
 
-Accessibility: a hidden live region for **manual** announcements of dynamic content (form validation, toasts, loading). Add it once, then drive it with the `useAnnouncer` composable (Nuxt 4.4.2+):
+## Client-only content
+
+Use `<ClientOnly>` for browser APIs or components that cannot render on the server. Provide a stable fallback for layout/SEO:
 
 ```vue
-<!-- app/app.vue -->
 <template>
-  <NuxtAnnouncer />
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
+  <ClientOnly>
+    <BrowserChart :data="points" />
+    <template #fallback><div class="chart-placeholder" /></template>
+  </ClientOnly>
 </template>
 ```
+
+`<DevOnly>` renders its slot only during development. `<Teleport>` may need `<ClientOnly>` and a stable target when used with SSR.
+
+## Islands
+
+`<NuxtIsland>` renders an island without shipping its component JavaScript to the browser. Props trigger a server refetch and must be serializable; they are sent as GET query parameters, so do not pass secrets or large values. The island has its own route/context and cannot share `useState`, Pinia, or provide/inject with the page. See [server components](server-components.md).
+
+## Accessibility
+
+`<NuxtRouteAnnouncer>` announces page-title changes after navigation. Its default `atomic` is `false`; it accepts `politeness` and a slot for custom output. For in-page updates, add `<NuxtAnnouncer>` once and use `useAnnouncer()`:
 
 ```vue
 <script setup lang="ts">
 const { polite, assertive } = useAnnouncer()
-assertive('Error: form is invalid') // interrupts immediately
+
+async function save() {
+  try {
+    await $fetch('/api/profile', { method: 'POST' })
+    polite('Profile saved')
+  } catch {
+    assertive('Profile could not be saved')
+  }
+}
 </script>
 ```
 
-Props: `politeness` (`polite` | `assertive` | `off`, default `polite`), `atomic` (default `true`). Use `<NuxtRouteAnnouncer>` for route changes, `<NuxtAnnouncer>` for everything else.
+Use the route announcer for navigation and the regular announcer for messages such as validation, toasts, and loading states.
 
-<!-- 
+`<NuxtImg>` and `<NuxtPicture>` are provided by `@nuxt/image`, not Nuxt core.
+
+<!--
 Source references:
 - https://nuxt.com/docs/4.x/api/components/nuxt-link
 - https://nuxt.com/docs/4.x/api/components/nuxt-page
 - https://nuxt.com/docs/4.x/api/components/nuxt-layout
 - https://nuxt.com/docs/4.x/api/components/client-only
-- https://nuxt.com/docs/4.x/api/components/nuxt-announcer
 - https://nuxt.com/docs/4.x/api/components/nuxt-island
+- https://nuxt.com/docs/4.x/api/components/nuxt-route-announcer
+- https://nuxt.com/docs/4.x/api/components/nuxt-announcer
 -->

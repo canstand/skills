@@ -1,5 +1,5 @@
 # Sync Info
 
 - **Source:** `vendor/turborepo/skills/turborepo`
-- **Git SHA:** `8035b5d8622786a6494b5f1095af69550a3b2c7b`
-- **Synced:** 2026-07-16
+- **Git SHA:** `66ebcac6701ccd66212d947519dde439adf3a20b`
+- **Synced:** 2026-08-30

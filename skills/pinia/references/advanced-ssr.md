@@ -112,8 +112,9 @@ if (typeof window !== 'undefined') {
 1. Call stores inside functions, not at module scope
 2. Pass `pinia` instance when using stores outside components in SSR
 3. Hydrate state before calling any `useStore()`
-4. Use `devalue` or similar for safe serialization
-5. Avoid cross-request state pollution by creating fresh pinia per request
+4. For plugin-added state, add it to both `store` and `store.$state` so it hydrates and serializes correctly
+5. Use `devalue` or similar for safe serialization
+6. Avoid cross-request state pollution by creating fresh pinia per request
 
 <!--
 Source references:

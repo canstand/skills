@@ -67,7 +67,7 @@ Add to both `store` and `store.$state` for SSR/devtools:
 import { toRef, ref } from 'vue'
 
 pinia.use(({ store }) => {
-  if (!store.$state.hasOwnProperty('hasError')) {
+  if (!Object.hasOwn(store.$state, 'hasError')) {
     const hasError = ref(false)
     store.$state.hasError = hasError
   }

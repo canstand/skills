@@ -101,6 +101,25 @@ const wrapper = mount(Counter, {
 createTestingPinia({ stubActions: false })
 ```
 
+### Setup Store Stubbing Limitation
+
+`stubActions` replaces actions on the store instance. In a Setup Store, an action calling another action uses its closed-over function reference, so the inner call is not stubbed:
+
+```ts
+import { defineStore } from 'pinia'
+
+export const useCounterStore = defineStore('counter', () => {
+  function increment() { /* ... */ }
+  function incrementTwice() {
+    increment() // real implementation, not the store.increment stub
+    increment()
+  }
+  return { increment, incrementTwice }
+})
+```
+
+Options Store actions call through `this`, so internal calls do hit stubs. You can route Setup Store calls through `useCounterStore().increment()`, but prefer testing the real implementation rather than adding indirection solely for a stub.
+
 ### Selective Stubbing
 
 ```ts

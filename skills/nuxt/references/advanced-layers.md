@@ -1,299 +1,56 @@
 ---
 name: nuxt-layers
-description: Extending Nuxt applications with layers for code sharing and reusability
+description: Reusing Nuxt application code and configuration with local, package, and remote layers
 ---
 
 # Nuxt Layers
 
-Layers allow sharing and reusing partial Nuxt applications across projects. They can include components, composables, pages, layouts, and configuration.
+A layer can contribute app files, server files, modules, and configuration. Its structure mirrors a Nuxt project:
 
-## Using Layers
-
-### From npm Package
-
-```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
-  extends: [
-    '@my-org/base-layer',
-    '@nuxtjs/ui-layer',
-  ],
-})
+```text
+my-layer/
+├── nuxt.config.ts
+├── app/components/
+├── app/composables/
+├── app/pages/
+├── app/app.config.ts
+└── server/
 ```
 
-### From Git Repository
+## Extending layers
 
 ```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
-  extends: [
-    'github:username/repo',
-    'github:username/repo/base', // Subdirectory
-    'github:username/repo#v1.0', // Specific tag
-    'github:username/repo#dev', // Branch
-    'gitlab:username/repo',
-    'bitbucket:username/repo',
-  ],
-})
-```
-
-### From Local Directory
-
-```ts
-// nuxt.config.ts
 export default defineNuxtConfig({
   extends: [
     '../base-layer',
-    './layers/shared',
+    '@acme/theme',
+    'github:acme/theme#4a1b2c3',
   ],
 })
 ```
 
-### Auto-scanned Layers
+Layers in the project `layers/` directory are auto-scanned. Local layers can also be listed explicitly with `~~/layers/name`; the first explicit `extends` entry has higher priority than later entries. Project files override layers, and auto-scanned layers are ordered alphabetically (later names have higher priority among them).
 
-Place in `layers/` directory for automatic discovery:
+Use numeric directory prefixes when priority must be obvious:
 
-```
-my-app/
-├── layers/
-│   ├── base/
-│   │   └── nuxt.config.ts
-│   └── ui/
-│       └── nuxt.config.ts
-└── nuxt.config.ts
-```
-
-## Creating a Layer
-
-Minimal layer structure:
-
-```
-my-layer/
-├── nuxt.config.ts       # Required
-├── app/
-│   ├── components/      # Auto-merged
-│   ├── composables/     # Auto-merged
-│   ├── layouts/         # Auto-merged
-│   ├── middleware/      # Auto-merged
-│   ├── pages/           # Auto-merged
-│   ├── plugins/         # Auto-merged
-│   └── app.config.ts    # Merged
-├── server/              # Auto-merged
-└── package.json
-```
-
-### Layer nuxt.config.ts
-
-```ts
-// my-layer/nuxt.config.ts
-export default defineNuxtConfig({
-  // Layer configuration
-  app: {
-    head: {
-      title: 'My Layer App',
-    },
-  },
-  // Shared modules
-  modules: ['@nuxt/ui'],
-})
-```
-
-### Layer Components
-
-```vue
-<!-- my-layer/app/components/BaseButton.vue -->
-<template>
-  <button class="base-btn">
-    <slot />
-  </button>
-</template>
-```
-
-Use in consuming project:
-
-```vue
-<template>
-  <BaseButton>Click me</BaseButton>
-</template>
-```
-
-### Layer Composables
-
-```ts
-// my-layer/app/composables/useTheme.ts
-export function useTheme() {
-  const isDark = useState('theme-dark', () => false)
-  const toggle = () => isDark.value = !isDark.value
-  return { isDark, toggle }
-}
-```
-
-## Layer Priority
-
-Override order (highest to lowest):
-1. Your project files
-2. Auto-scanned layers (alphabetically, Z > A)
-3. `extends` array (first > last)
-
-Control order with prefixes:
-
-```
+```text
 layers/
-├── 1.base/      # Lower priority
-└── 2.theme/     # Higher priority
+├── 1.base/
+└── 2.theme/
 ```
 
-## Layer Aliases
+Named aliases such as `#layers/theme` are available for layers. Use `$meta.name` in a layer config when you need to control its metadata/alias.
 
-Access layer files:
+## Authoring and publishing
 
-```ts
-// Auto-scanned layers get aliases
-import Component from '#layers/base/components/Component.vue'
-```
+Prefer resolved paths for assets and use ESM. A published layer should ship compiled JavaScript for runtime-loaded config. Avoid relying on remote downloads for reproducibility: pin a remote layer as a package-manager git dependency and extend by package name. If you continue using a remote `extends` URL, install the optional `giget` dependency.
 
-Named aliases:
+Keep a layer version-agnostic where possible and express compatibility in module metadata. A consuming project can disable inherited modules by setting the module's config key to `false`.
 
-```ts
-// my-layer/nuxt.config.ts
-export default defineNuxtConfig({
-  $meta: {
-    name: 'my-layer',
-  },
-})
-```
-
-```ts
-// In consuming project
-import { something } from '#layers/my-layer/utils'
-```
-
-## Publishing Layers
-
-### As npm Package
-
-```json
-{
-  "name": "my-nuxt-layer",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "./nuxt.config.ts",
-  "dependencies": {
-    "@nuxt/ui": "^2.0.0"
-  },
-  "devDependencies": {
-    "nuxt": "^3.0.0"
-  }
-}
-```
-
-### Private Layers
-
-For private git repos:
-
-```bash
-export GIGET_AUTH=<github-token>
-```
-
-## Layer Best Practices
-
-### Use Resolved Paths
-
-```ts
-// my-layer/nuxt.config.ts
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
-
-const currentDir = dirname(fileURLToPath(import.meta.url))
-
-export default defineNuxtConfig({
-  css: [
-    join(currentDir, './assets/main.css'),
-  ],
-})
-```
-
-### Install Dependencies
-
-```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
-  extends: [
-    ['github:user/layer', { install: true }],
-  ],
-})
-```
-
-### Disable Layer Modules
-
-```ts
-// nuxt.config.ts
-export default defineNuxtConfig({
-  extends: ['./base-layer'],
-  // Disable modules from layer
-  image: false, // Disables @nuxt/image
-  pinia: false, // Disables @pinia/nuxt
-})
-```
-
-## Starter Template
-
-Create a new layer:
-
-```bash
-npx nuxi init --template layer my-layer
-```
-
-## Example: Theme Layer
-
-```
-theme-layer/
-├── nuxt.config.ts
-├── app/
-│   ├── app.config.ts
-│   ├── components/
-│   │   ├── ThemeButton.vue
-│   │   └── ThemeCard.vue
-│   ├── composables/
-│   │   └── useTheme.ts
-│   └── assets/
-│       └── theme.css
-└── package.json
-```
-
-```ts
-// theme-layer/nuxt.config.ts
-export default defineNuxtConfig({
-  css: ['~/assets/theme.css'],
-})
-```
-
-```ts
-// theme-layer/app/app.config.ts
-export default defineAppConfig({
-  theme: {
-    primaryColor: '#00dc82',
-    darkMode: false,
-  },
-})
-```
-
-```ts
-// consuming-app/nuxt.config.ts
-export default defineNuxtConfig({
-  extends: ['theme-layer'],
-})
-
-// consuming-app/app/app.config.ts
-export default defineAppConfig({
-  theme: {
-    primaryColor: '#ff0000', // Override
-  },
-})
-```
-
-<!-- 
+<!--
 Source references:
-- https://nuxt.com/docs/getting-started/layers
-- https://nuxt.com/docs/guide/going-further/layers
+- https://nuxt.com/docs/4.x/getting-started/layers
+- https://nuxt.com/docs/4.x/guide/going-further/layers
+- https://nuxt.com/docs/4.x/directory-structure/layers
+- https://nuxt.com/docs/4.x/getting-started/upgrade#giget-is-now-optional-remote-layers
 -->

@@ -1,263 +1,89 @@
 ---
 name: cli-commands
-description: Nuxt CLI commands for development, building, and project management
+description: Nuxt CLI commands for development, building, prerendering, and project maintenance
 ---
 
 # CLI Commands
 
-Nuxt provides CLI commands via `nuxi` (or `npx nuxt`) for development, building, and project management.
+Use the Nuxt CLI through a package script or `npx nuxt <command>`. The command reference is now maintained in the separate [`nuxt/cli`](https://github.com/nuxt/cli) repository; the Nuxt framework docs only point to it.
 
-## Project Initialization
-
-### Create New Project
+## Daily commands
 
 ```bash
-# Interactive project creation
-npx nuxi@latest init my-app
-
-# With specific package manager
-npx nuxi@latest init my-app --packageManager pnpm
-
-# With modules
-npx nuxi@latest init my-app --modules "@nuxt/ui,@nuxt/image"
-
-# From template
-npx nuxi@latest init my-app --template v3
-
-# Skip module selection prompt
-npx nuxi@latest init my-app --no-modules
-```
-
-**Options:**
-| Option | Description |
-|--------|-------------|
-| `-t, --template` | Template name |
-| `--packageManager` | npm, pnpm, yarn, or bun |
-| `-M, --modules` | Modules to install (comma-separated) |
-| `--gitInit` | Initialize git repository |
-| `--no-install` | Skip installing dependencies |
-
-## Development
-
-### Start Dev Server
-
-```bash
-# Start development server (default: http://localhost:3000)
+# Start development (add -o/--open to open a browser)
 npx nuxt dev
 
-# Custom port
-npx nuxt dev --port 4000
+# Generate Nuxt types and aliases
+npx nuxt prepare
 
-# Open in browser
-npx nuxt dev --open
+# Check types
+npx nuxt typecheck
 
-# Listen on all interfaces (for mobile testing)
-npx nuxt dev --host 0.0.0.0
-
-# With HTTPS
-npx nuxt dev --https
-
-# Clear console on restart
-npx nuxt dev --clear
-
-# Create public tunnel
-npx nuxt dev --tunnel
-```
-
-**Options:**
-| Option | Description |
-|--------|-------------|
-| `-p, --port` | Port to listen on |
-| `-h, --host` | Host to listen on |
-| `-o, --open` | Open in browser |
-| `--https` | Enable HTTPS |
-| `--tunnel` | Create public tunnel (via untun) |
-| `--qr` | Show QR code for mobile |
-| `--clear` | Clear console on restart |
-
-**Environment Variables:**
-- `NUXT_PORT` or `PORT` - Default port
-- `NUXT_HOST` or `HOST` - Default host
-
-## Building
-
-### Production Build
-
-```bash
-# Build for production
+# Build the production server
 npx nuxt build
 
-# Build with prerendering
+# Run a built app locally
+NODE_ENV=production npx nuxt preview
+```
+
+`nuxt dev` supports `--port`, `--host`, `--open`, `--https`, and `--tunnel`. `PORT`/`HOST` (or their `NUXT_` equivalents) can provide development defaults.
+
+## Static and environment-specific builds
+
+```bash
+# Prerender routes for static hosting
+npx nuxt generate
+
+# Equivalent build flag
 npx nuxt build --prerender
 
-# Build with specific preset
+# Select a named configuration environment
+npx nuxt build --envName staging
+
+# Select a Nitro deployment preset
 npx nuxt build --preset node-server
-npx nuxt build --preset cloudflare-pages
-npx nuxt build --preset vercel
-
-# Build with environment
-npx nuxt build --envName staging
 ```
 
-Output is created in `.output/` directory.
+`generate` produces static files and does not include a running server. Use `build` when server routes or hybrid rendering must remain available.
 
-### Static Generation
-
-```bash
-# Generate static site (prerenders all routes)
-npx nuxt generate
-```
-
-Equivalent to `nuxt build --prerender`. Creates static HTML files for deployment to static hosting.
-
-### Preview Production Build
+## Project utilities
 
 ```bash
-# Preview after build
-npx nuxt preview
-
-# Custom port
-npx nuxt preview --port 4000
-```
-
-## Utilities
-
-### Prepare (Type Generation)
-
-```bash
-# Generate TypeScript types and .nuxt directory
-npx nuxt prepare
-```
-
-Run after cloning or when types are missing.
-
-### Type Check
-
-```bash
-# Run TypeScript type checking
-npx nuxt typecheck
-```
-
-### Analyze Bundle
-
-```bash
-# Analyze production bundle
-npx nuxt analyze
-```
-
-Opens visual bundle analyzer.
-
-### Cleanup
-
-```bash
-# Remove generated files (.nuxt, .output, node_modules/.cache)
-npx nuxt cleanup
-```
-
-### Info
-
-```bash
-# Show environment info (useful for bug reports)
-npx nuxt info
-```
-
-### Upgrade
-
-```bash
-# Upgrade Nuxt to latest version
-npx nuxt upgrade
-
-# Upgrade to nightly release
-npx nuxt upgrade --nightly
-```
-
-## Module Commands
-
-### Add Module
-
-```bash
-# Add a Nuxt module
 npx nuxt module add @nuxt/ui
-npx nuxt module add @nuxt/image
-```
-
-Installs and adds to `nuxt.config.ts`.
-
-### Build Module (for module authors)
-
-```bash
-# Build a Nuxt module
-npx nuxt build-module
-```
-
-## DevTools
-
-```bash
-# Enable DevTools globally
 npx nuxt devtools enable
-
-# Disable DevTools
-npx nuxt devtools disable
+npx nuxt analyze
+npx nuxt cleanup
+npx nuxt info
+npx nuxt upgrade
 ```
 
-## Common Workflows
+For a reproducible project, prefer package-manager scripts:
 
-### Development
+```json
+{
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "typecheck": "nuxt typecheck"
+  }
+}
+```
+
+## Module author commands
 
 ```bash
-# Install dependencies and start dev
-pnpm install
-pnpm dev  # or npx nuxt dev
+npx nuxt build-module
+npx nuxt test
 ```
 
-### Production Deployment
+Check the installed CLI's `--help` output for command-specific options; avoid relying on undocumented flags in automation.
 
-```bash
-# Build and preview locally
-pnpm build
-pnpm preview
-
-# Or for static hosting
-pnpm generate
-```
-
-### After Cloning
-
-```bash
-# Install deps and prepare types
-pnpm install
-npx nuxt prepare
-```
-
-## Environment-specific Builds
-
-```bash
-# Development build
-npx nuxt build --envName development
-
-# Staging build
-npx nuxt build --envName staging
-
-# Production build (default)
-npx nuxt build --envName production
-```
-
-Corresponds to `$development`, `$env.staging`, `$production` in `nuxt.config.ts`.
-
-## Layer Extension
-
-```bash
-# Dev with additional layer
-npx nuxt dev --extends ./base-layer
-
-# Build with layer
-npx nuxt build --extends ./base-layer
-```
-
-<!-- 
+<!--
 Source references:
-- https://nuxt.com/docs/api/commands/dev
-- https://nuxt.com/docs/api/commands/build
-- https://nuxt.com/docs/api/commands/generate
-- https://nuxt.com/docs/api/commands/init
+- https://github.com/nuxt/cli/tree/main/docs
+- https://nuxt.com/docs/4.x/getting-started/installation
+- https://nuxt.com/docs/4.x/getting-started/prerendering
+- https://nuxt.com/docs/4.x/getting-started/deployment
 -->

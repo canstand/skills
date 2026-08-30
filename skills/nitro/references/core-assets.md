@@ -52,7 +52,7 @@ Only compressible MIME types ≥ 1 KB are compressed (`.map` files excluded).
 
 ## Server assets
 
-Files in `assets/` are bundled into the server and read via the storage layer at the `assets:server` mount point (only included in the bundle when accessed through `useStorage`).
+Files in `assets/` (relative to `serverDir` when it is set, otherwise the project root) are bundled into the server and read via the storage layer at the `assets:server` mount point (only included in the bundle when accessed through `useStorage`).
 
 ```
 assets/
@@ -92,6 +92,24 @@ const html = await useStorage("assets:templates").getItem("email.html");
 ```
 
 Entry options: `baseName`, `dir`, `pattern` (default `**/*`), `ignore`.
+
+## Importing files
+
+Import any file as bytes or UTF-8 text with an import attribute. The file is inlined into the server bundle, so prefer server assets for larger files:
+
+```ts [routes/logo.ts]
+import { defineHandler } from "nitro";
+// @ts-ignore -- TypeScript does not yet support these attributes
+import logo from "./logo.png" with { type: "bytes" };
+// @ts-ignore -- TypeScript does not yet support these attributes
+import readme from "./README.md" with { type: "text" };
+
+export default defineHandler(() => new Response(logo, {
+  headers: { "content-type": "image/png" },
+}));
+```
+
+Dynamic imports accept the same attribute: `await import("./logo.png", { with: { type: "bytes" } })`. Alternatively, `raw:./file` imports text files as strings and binary files as `Uint8Array`.
 
 ## Key Points
 

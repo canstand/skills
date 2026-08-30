@@ -1,239 +1,112 @@
 ---
 name: configuration
-description: Nuxt configuration files including nuxt.config.ts, app.config.ts, and runtime configuration
+description: Nuxt configuration, runtime config, app config, environments, and experimental features
 ---
 
 # Nuxt Configuration
 
-Nuxt uses configuration files to customize application behavior. The main configuration options are `nuxt.config.ts` for build-time settings and `app.config.ts` for runtime settings.
-
-## nuxt.config.ts
-
-The main configuration file at the root of your project:
+Keep the main configuration in root-level `nuxt.config.ts`. `defineNuxtConfig` is globally available, or can be imported from `nuxt/config`.
 
 ```ts
 // nuxt.config.ts
+import { defineNuxtConfig } from 'nuxt/config'
+
 export default defineNuxtConfig({
-  // Configuration options
-  devtools: { enabled: true },
   modules: ['@nuxt/ui'],
+  devtools: { enabled: true },
 })
 ```
 
-### Nuxt 4 Path Aliases
+## Source directory and aliases
 
-In Nuxt 4 the default `srcDir` is `app/`, so the path aliases changed:
-
-| Alias | Resolves to |
-|-------|-------------|
-| `~` / `@` | `<rootDir>/app` |
-| `~~` / `@@` | `<rootDir>` (project root) |
-| `#shared` | `<rootDir>/shared` |
-| `#server` | `<rootDir>/server` |
-
-Reference root-level paths (modules, server handlers) with `~~` or `#server`:
+The default Vue source directory is `app/`; server, shared, public, modules, layers, and the config remain at the project root. Change it with `srcDir` when needed:
 
 ```ts
 export default defineNuxtConfig({
-  modules: ['~~/custom-modules/awesome.js'], // relative to rootDir
-  serverHandlers: [
-    { route: '/foo/**', handler: '#server/foohandler.ts' },
-  ],
-})
-```
-
-### Compatibility Version
-
-Nuxt 4 is the default behavior. To preview upcoming Nuxt 5 defaults (Vite Environment API, normalized page names, etc.):
-
-```ts
-export default defineNuxtConfig({
-  future: {
-    compatibilityVersion: 5,
+  srcDir: 'src/',
+  alias: {
+    '#shared': './shared',
   },
 })
 ```
 
-### Environment Overrides
+Nuxt aliases are context-aware: `~`/`@` target the source directory, `~~`/`@@` target the project root, `#shared` targets `shared/`, and `#server` targets `server/` (the latter only from server code).
 
-Configure environment-specific settings:
+## Environment overrides
+
+Use `$production`, `$development`, and named `$env` blocks. Select one with `--envName`:
 
 ```ts
 export default defineNuxtConfig({
   $production: {
-    routeRules: {
-      '/**': { isr: true },
-    },
-  },
-  $development: {
-    // Development-specific config
+    routeRules: { '/**': { isr: true } },
   },
   $env: {
     staging: {
-      // Staging environment config
+      runtimeConfig: { public: { apiBase: 'https://staging.example.test' } },
     },
   },
 })
 ```
 
-Use `--envName` flag to select environment: `nuxt build --envName staging`
+## Runtime config and app config
 
-## Runtime Config
-
-For values that need to be overridden via environment variables:
+Use `runtimeConfig` for values supplied after build, especially secrets. Only `public` and internal `app` keys reach the client, and environment variables must follow the `NUXT_` naming structure.
 
 ```ts
-// nuxt.config.ts
 export default defineNuxtConfig({
   runtimeConfig: {
-    // Server-only keys
-    apiSecret: '123',
-    // Keys within public are exposed to client
-    public: {
-      apiBase: '/api',
-    },
+    apiSecret: '',
+    public: { apiBase: '/api' },
   },
 })
 ```
-
-Override with environment variables:
-
-```ini
-# .env
-NUXT_API_SECRET=api_secret_token
-NUXT_PUBLIC_API_BASE=https://api.example.com
-```
-
-Access in components/composables:
 
 ```vue
 <script setup lang="ts">
 const config = useRuntimeConfig()
-// Server: config.apiSecret, config.public.apiBase
-// Client: config.public.apiBase only
+if (import.meta.server) console.log(config.apiSecret)
+console.log(config.public.apiBase)
 </script>
 ```
 
-## App Config
-
-For public tokens determined at build time (not overridable via env vars):
+Use `app/app.config.ts` for public values known at build time, such as theme settings. Unlike runtime config, it can contain non-primitive values and supports HMR.
 
 ```ts
 // app/app.config.ts
 export default defineAppConfig({
-  title: 'Hello Nuxt',
-  theme: {
-    dark: true,
-    colors: {
-      primary: '#ff0000',
-    },
-  },
+  title: 'My app',
+  theme: { dark: true },
 })
 ```
 
-Access in components:
+Do not put functions, secrets, or other non-serializable values in runtime config. The built server does not read `.env`; provide runtime variables through the deployment environment.
 
-```vue
-<script setup lang="ts">
-const appConfig = useAppConfig()
-</script>
-```
+## External tools and experimental flags
 
-## runtimeConfig vs app.config
-
-| Feature | runtimeConfig | app.config |
-|---------|--------------|------------|
-| Client-side | Hydrated | Bundled |
-| Environment variables | Yes | No |
-| Reactive | Yes | Yes |
-| Hot module replacement | No | Yes |
-| Non-primitive JS types | No | Yes |
-
-**Use runtimeConfig** for secrets and values that change per environment.
-**Use app.config** for public tokens, theme settings, and non-sensitive config.
-
-## External Tool Configuration
-
-Nuxt uses `nuxt.config.ts` as single source of truth. Configure external tools within it:
+Configure Nitro, Vite, PostCSS, and webpack under their keys in `nuxt.config.ts`; do not add parallel config files unless a tool specifically requires one.
 
 ```ts
 export default defineNuxtConfig({
-  // Nitro configuration
-  nitro: {
-    // nitro options
-  },
-  // Vite configuration
-  vite: {
-    // vite options
-    vue: {
-      // @vitejs/plugin-vue options
-    },
-  },
-  // PostCSS configuration
-  postcss: {
-    // postcss options
-  },
-})
-```
-
-### Environment-specific Vite Config
-
-Top-level `vite` options are shared. Use `$client` and `$server` to target a single Vite build:
-
-```ts
-export default defineNuxtConfig({
-  vite: {
-    $client: {
-      build: { rollupOptions: { output: { manualChunks: { analytics: ['analytics-package'] } } } },
-    },
-    $server: {
-      build: { sourcemap: 'inline' },
-    },
-  },
-})
-```
-
-## Vue Configuration
-
-Enable Vue experimental features:
-
-```ts
-export default defineNuxtConfig({
-  vue: {
-    propsDestructure: true,
-  },
-})
-```
-
-## Experimental Features & Defaults
-
-Notable Nuxt 4 flags under `experimental` (see source for the full list):
-
-```ts
-export default defineNuxtConfig({
+  nitro: { preset: 'node-server' },
+  vite: { vue: { customElement: true } },
   experimental: {
-    // Stream the HTML shell first, then render body progressively (better TTFB)
+    payloadExtraction: 'client',
     ssrStreaming: true,
-    // Run useFetch when its key changes even if immediate:false and not yet triggered
-    alwaysRunFetchOnKeyChange: true,
-    // Split useAsyncData handlers into separate chunks (static builds)
-    extractAsyncDataHandlers: true,
-    // pending is true before fetching starts
-    pendingWhenIdle: true,
-    // Default options for core composables/components
-    defaults: {
-      nuxtLink: { prefetch: true, prefetchOn: { visibility: true } },
-      useAsyncData: { deep: true },
-      useState: { resetOnClear: true },
-    },
+    componentIslands: { selectiveClient: true },
   },
 })
 ```
 
-<!-- 
+Experimental options can change or disappear. Current high-value options include `payloadExtraction`, `sharedPrerenderData`, `ssrStreaming`, `typedPages`, `inlineRouteRules`, `lazyHydration`, and component islands. `componentIslands` defaults to automatic detection; use an object when enabling selective client hydration or remote islands.
+
+`future.compatibilityVersion: 5` is a forward-compatibility switch, not a generic feature toggle. It opts into documented Nuxt 5 defaults such as the Vite Environment API, typed pages, normalized page names, comment placeholders for client-only components, and non-async `callHook` behavior. Review the migration reference before enabling it.
+
+<!--
 Source references:
 - https://nuxt.com/docs/4.x/getting-started/configuration
+- https://nuxt.com/docs/4.x/directory-structure/nuxt-config
 - https://nuxt.com/docs/4.x/guide/going-further/runtime-config
-- https://nuxt.com/docs/4.x/api/nuxt-config
 - https://nuxt.com/docs/4.x/guide/going-further/experimental-features
+- https://nuxt.com/docs/4.x/guide/going-further/features
 -->
