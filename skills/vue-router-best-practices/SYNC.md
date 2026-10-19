@@ -1,5 +1,5 @@
 # Sync Info
 
 - **Source:** `vendor/vuejs-ai/skills/vue-router-best-practices`
-- **Git SHA:** `c9d355ff23f654309dd02006be671859df0a134c`
-- **Synced:** 2026-07-16
+- **Git SHA:** `f5d4b3b869bb8a86ddfea148196f7db64aeefeab`
+- **Synced:** 2026-10-19
