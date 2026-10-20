@@ -61,20 +61,6 @@ export const submodules: Record<string, SourceMeta> = {
  * Already generated skills, sync with their `skills/` directory
  */
 export const vendors: Record<string, VendorSkillMeta> = {
-  'slidev': {
-    official: true,
-    source: 'https://github.com/slidevjs/slidev',
-    skills: {
-      slidev: 'slidev',
-    },
-  },
-  'vueuse': {
-    official: true,
-    source: 'https://github.com/vueuse/vueuse',
-    skills: {
-      'vueuse-functions': 'vueuse-functions',
-    },
-  },
   'tsdown': {
     official: true,
     source: 'https://github.com/rolldown/tsdown',
@@ -88,19 +74,6 @@ export const vendors: Record<string, VendorSkillMeta> = {
       'vue-best-practices': 'vue-best-practices',
       'vue-router-best-practices': 'vue-router-best-practices',
       'vue-testing-best-practices': 'vue-testing-best-practices',
-    },
-  },
-  'turborepo': {
-    official: true,
-    source: 'https://github.com/vercel/turborepo',
-    skills: {
-      turborepo: 'turborepo',
-    },
-  },
-  'web-design-guidelines': {
-    source: 'https://github.com/vercel-labs/agent-skills',
-    skills: {
-      'web-design-guidelines': 'web-design-guidelines',
     },
   },
   'nuxt-ui': {
@@ -119,6 +92,5 @@ export const vendors: Record<string, VendorSkillMeta> = {
  */
 export const manual = [
   'antfu',
-  'antfu-design',
   'antfu-create-pr',
 ]
