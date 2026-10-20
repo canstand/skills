@@ -29,6 +29,15 @@ Prefer symlinks over copying so projects automatically use the current `custom` 
 
 ## Upstream Installation
 
+Upstream now recommends the `@antfu/skills` pack with `skills-npm`, which keeps installed skills in sync through the package manager:
+
+```bash
+pnpm i -D skills-npm @antfu/skills
+pnpx skills-npm setup
+```
+
+Alternatively, install directly from the repository with the `skills` CLI:
+
 ```bash
 pnpx skills add antfu/skills --skill='*'
 ```
@@ -54,8 +63,10 @@ Manually maintained by Anthony Fu with his preferred tools, setup conventions, a
 | Skill | Description |
 |-------|-------------|
 | [antfu](skills/antfu) | Anthony Fu's preferences and best practices for app/library projects (eslint, pnpm, vitest, vue, etc.) |
-| [antfu-design](skills/antfu-design) | UnoCSS-centered design principles, semantic tokens, and UI presentation patterns from Anthony Fu's tooling UIs |
 | [antfu-create-pr](skills/antfu-create-pr) | Open reviewable PRs: Conventional Commits title, evidence-based body, before/after screenshots via `gh --attach` (adapted from [moeru-ai/airi](https://github.com/moeru-ai/airi/blob/main/.agents/skills/create-pr/SKILL.md)) |
+
+> [!TIP]
+> For design, install the `antfu-design` skill from [antfu/design](https://github.com/antfu/design) instead of vendoring it here.
 
 ### Skills Generated from Official Documentation
 
@@ -80,15 +91,11 @@ Synced from external repositories that maintain their own skills.
 
 | Skill | Description | Source |
 |-------|-------------|--------|
-| [slidev](skills/slidev) (Official) | Slidev - presentation slides for developers | [slidevjs/slidev](https://github.com/slidevjs/slidev) |
 | [nuxt-ui](skills/nuxt-ui) (Official) | Nuxt UI - Vue/Nuxt component library built with Tailwind CSS | [nuxt/ui](https://github.com/nuxt/ui/tree/v4/skills/nuxt-ui) |
 | [tsdown](skills/tsdown) (Official) | tsdown - TypeScript library bundler powered by Rolldown | [rolldown/tsdown](https://github.com/rolldown/tsdown) |
-| [turborepo](skills/turborepo) (Official) | Turborepo - high-performance build system for monorepos | [vercel/turborepo](https://github.com/vercel/turborepo) |
-| [vueuse-functions](skills/vueuse-functions) (Official) | VueUse - 200+ Vue composition utilities | [vueuse/skills](https://github.com/vueuse/skills) |
 | [vue-best-practices](skills/vue-best-practices) | Vue 3 + TypeScript best practices | [vuejs-ai/skills](https://github.com/vuejs-ai/skills) |
 | [vue-router-best-practices](skills/vue-router-best-practices) | Vue Router best practices | [vuejs-ai/skills](https://github.com/vuejs-ai/skills) |
 | [vue-testing-best-practices](skills/vue-testing-best-practices) | Vue testing best practices | [vuejs-ai/skills](https://github.com/vuejs-ai/skills) |
-| [web-design-guidelines](skills/web-design-guidelines) | Web design guidelines for building beautiful interfaces | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) |
 
 ## FAQ
 
@@ -128,6 +135,9 @@ See [AGENTS.md](AGENTS.md) for detailed generation guidelines.
 - Use `custom` for canstand-specific skills, instruction updates, regenerated outputs, and local usage documentation.
 - When upstream changes, sync `main` first, then selectively merge, rebase, cherry-pick, or regenerate into `custom`.
 - Keep `package.json` private and avoid adding npm publish/release workflow unless that requirement changes.
+- Run `pnpm run verify` to validate `meta.ts`, skill frontmatter, relative links, and vendor sync drift. It also runs on pre-commit.
+- Run `pnpm start check` to see which source or vendor submodules have updates; `pnpm start sync` pulls them.
+- Removed vendors can still be installed on demand with the [`skills`](https://github.com/vercel-labs/skills) CLI, for example `pnpx skills add vueuse/skills`.
 
 ## Sponsors
 

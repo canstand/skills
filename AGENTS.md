@@ -53,6 +53,10 @@ When editing on `custom`, preserve upstream compatibility where practical so fut
 - canstand-specific manual preferences,
 - documentation about this fork's local usage.
 
+### Upstream Divergence
+
+Upstream removed vendor syncing in `e98e476`; this fork intentionally keeps `vendor/` as a local mirror for offline, one-stop use. Treat vendor submodules as the source of truth, never edit synced output, and record deliberate divergences here or in `README.md`. When upstream changes conflict with a retained vendor, skip the upstream deletion and apply only the compatible parts.
+
 ## Skill Source Types
 
 There are three types of skill sources. The project lists are defined in `meta.ts`:
@@ -70,7 +74,7 @@ For OSS projects **without existing skills**. We clone the repo as a submodule a
 
 For projects that **already maintain their own skills**. We clone their repo as a submodule and sync specified skills to ours.
 
-- **Projects:** Slidev, VueUse, Nuxt UI, and other projects listed in `meta.ts`
+- **Projects:** tsdown, vuejs-ai, Nuxt UI, and other projects listed in `meta.ts`
 - **Workflow:** Pull updates → Copy specified skills (with optional renaming)
 - **Source:** `vendor/{project}/skills/{skill-name}/`
 - **Config:** Each vendor specifies which skills to sync and their output names in `meta.ts`
@@ -104,8 +108,10 @@ On the `custom` branch, hand-written skills may also include canstand-specific p
         ├── SKILL.md           # Index of all skills
         ├── GENERATION.md       # Tracking metadata (for generated skills)
         ├── SYNC.md             # Tracking metadata (for synced skills)
-        └── references/
-            └── *.md            # Individual skill files
+        ├── references/
+        │   └── *.md            # Individual skill files
+        └── scripts/
+            └── *               # Optional executable helpers
 ```
 
 **Important:** For Type 1 (generated), the `skills/{project}/` name must match `sources/{project}/`. For Type 2 (synced), the output name is configured in `meta.ts` and may differ from the source skill name.
@@ -178,6 +184,10 @@ On the `custom` branch, hand-written skills may also include canstand-specific p
 3. **Update** `SYNC.md` with new SHA
 
 **Note:** Do NOT modify synced skills manually. Changes should be contributed upstream to the vendor project.
+
+### Verifying Skills
+
+Run `pnpm run verify` after changing `meta.ts`, skill files, or vendor submodules. It checks that every skill in `meta.ts` exists, every skill directory is tracked, frontmatter has a matching `name` and a `description`, relative `references/`/`scripts/` links resolve, and synced `SYNC.md` SHAs match the vendor submodule HEAD. It runs on pre-commit as well.
 
 ## File Formats
 
@@ -258,6 +268,10 @@ Tracking metadata for synced skills (Type 2):
 - **Git SHA:** `abc123def456...`
 - **Synced:** 2024-01-15
 ```
+
+### `scripts/*` (optional)
+
+Skills may ship executable helpers when a workflow is deterministic or error-prone, such as uploading PR attachments. Reference the script from `SKILL.md` with a path relative to the skill directory, document required tools and auth, keep it POSIX-shell friendly, mark it executable (`chmod +x`), and never embed secrets.
 
 ### `references/*.md`
 

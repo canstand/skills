@@ -70,6 +70,11 @@ function submoduleExists(path: string): boolean {
 }
 
 const RE_SUBMODULE_PATH = /path\s*=\s*(.+)/g
+const RE_GIT_SHA = /Git SHA:\*\* `([0-9a-f]+)`/
+const RE_FRONTMATTER = /^---\n([\s\S]*?)\n---/
+const RE_FRONTMATTER_NAME = /^name:[ \t]*(\S.*)$/m
+const RE_FRONTMATTER_DESCRIPTION = /^description:\s*\S/m
+const RE_SKILL_LINK = /\]\(((?:references|scripts)\/[^)#]+)(?:#[^)]+)?\)/g
 
 function getExistingSubmodulePaths(): string[] {
   const gitmodules = join(root, '.gitmodules')
@@ -444,6 +449,93 @@ function getExistingSkillNames(): string[] {
     .map(entry => entry.name)
 }
 
+function readGitSha(filePath: string): string | null {
+  if (!existsSync(filePath))
+    return null
+
+  const content = readFileSync(filePath, 'utf-8')
+  return content.match(RE_GIT_SHA)?.[1] ?? null
+}
+
+function collectSkillErrors(skillName: string): string[] {
+  const dir = join(root, 'skills', skillName)
+  const skillFile = join(dir, 'SKILL.md')
+
+  if (!existsSync(skillFile))
+    return [`skills/${skillName}/SKILL.md is missing`]
+
+  const errors: string[] = []
+  const content = readFileSync(skillFile, 'utf-8')
+  const frontmatter = content.match(RE_FRONTMATTER)?.[1]
+
+  if (!frontmatter) {
+    errors.push(`skills/${skillName}/SKILL.md has no frontmatter`)
+  }
+  else {
+    const name = frontmatter.match(RE_FRONTMATTER_NAME)?.[1]?.trim()
+    if (name !== skillName)
+      errors.push(`skills/${skillName}/SKILL.md declares name "${name}"`)
+    if (!RE_FRONTMATTER_DESCRIPTION.test(frontmatter))
+      errors.push(`skills/${skillName}/SKILL.md has no description`)
+  }
+
+  for (const match of content.matchAll(RE_SKILL_LINK)) {
+    const target = match[1]
+    if (!existsSync(join(dir, target)))
+      errors.push(`skills/${skillName}/SKILL.md links to missing ${target}`)
+  }
+
+  return errors
+}
+
+async function verifySkills() {
+  const errors: string[] = []
+  const warnings: string[] = []
+  const existing = getExistingSkillNames()
+  const expected = getExpectedSkillNames()
+
+  for (const name of existing) {
+    if (!expected.has(name))
+      errors.push(`skills/${name} is not tracked in meta.ts`)
+  }
+
+  for (const name of expected) {
+    if (!existing.includes(name))
+      errors.push(`skills/${name} is tracked in meta.ts but missing`)
+  }
+
+  for (const [vendorName, config] of Object.entries(vendors)) {
+    const vendorConfig = config as VendorConfig
+    for (const outputName of Object.values(vendorConfig.skills)) {
+      const sha = readGitSha(join(root, 'skills', outputName, 'SYNC.md'))
+      if (!sha) {
+        errors.push(`skills/${outputName}/SYNC.md is missing`)
+        continue
+      }
+
+      const head = getGitSha(join(root, 'vendor', vendorName))
+      if (head && sha !== head)
+        warnings.push(`skills/${outputName}: SYNC.md ${sha.slice(0, 7)} differs from vendor/${vendorName} HEAD ${head.slice(0, 7)} (pending sync?)`)
+    }
+  }
+
+  for (const name of existing)
+    errors.push(...collectSkillErrors(name))
+
+  for (const warning of warnings)
+    p.log.warn(warning)
+
+  if (errors.length > 0) {
+    for (const error of errors)
+      p.log.error(error)
+    p.log.error(`Verification failed with ${errors.length} error(s)`)
+    process.exitCode = 1
+    return
+  }
+
+  p.log.success(`Verified ${existing.length} skills${warnings.length > 0 ? ` (${warnings.length} warning(s))` : ''}`)
+}
+
 async function cleanup(skipPrompt = false) {
   const spinner = p.spinner()
   let hasChanges = false
@@ -588,10 +680,17 @@ async function main() {
     return
   }
 
+  if (command === 'verify') {
+    p.intro('Skills Manager - Verify')
+    await verifySkills()
+    p.outro('Done')
+    return
+  }
+
   // No subcommand: show interactive menu (requires interaction)
   if (skipPrompt) {
     p.log.error('Command required when using -y flag')
-    p.log.info('Available commands: init, sync, check, cleanup')
+    p.log.info('Available commands: init, sync, check, cleanup, verify')
     process.exit(1)
   }
 
@@ -604,6 +703,7 @@ async function main() {
       { value: 'init', label: 'Init submodules', hint: 'Add new submodules' },
       { value: 'check', label: 'Check updates', hint: 'See available updates' },
       { value: 'cleanup', label: 'Cleanup', hint: 'Remove unused submodules and skills' },
+      { value: 'verify', label: 'Verify skills', hint: 'Validate metadata, frontmatter and links' },
     ],
   })
 
@@ -624,6 +724,9 @@ async function main() {
       break
     case 'cleanup':
       await cleanup()
+      break
+    case 'verify':
+      await verifySkills()
       break
   }
 

@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "eslint .",
     "start": "node scripts/cli.ts",
+    "verify": "node scripts/cli.ts verify",
     "prepare": "simple-git-hooks && git submodule update --init --recursive"
   },
   "devDependencies": {
@@ -17,7 +18,7 @@
     "typescript": "^5.9.3"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged"
+    "pre-commit": "pnpm lint-staged && pnpm run verify"
   },
   "lint-staged": {
     "*.{js,ts,mjs,mts}": "eslint --fix"
