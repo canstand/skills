@@ -56,6 +56,8 @@ export default defineNuxtConfig({
 
 Each entry accepts `pattern` and `ignore`; when `pattern` is set, ensure it matches the desired extensions. Use `global: true` or a `global/` directory/`.global.vue` suffix sparingly because global components create separate async chunks.
 
+Parenthesized directory names group files without affecting the component name: `components/base/(foo)/Button.vue` → `<BaseButton />`.
+
 ## Direct and dynamic imports
 
 Use `#components` for an explicit import. `resolveComponent` requires a literal component name so the compiler can analyze it:

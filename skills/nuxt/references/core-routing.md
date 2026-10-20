@@ -7,6 +7,13 @@ description: Nuxt file-based routing, navigation, route middleware, validation, 
 
 Nuxt generates vue-router routes from Vue files in `app/pages/`. Routes are code-split by default.
 
+## Nuxt 5 routing defaults
+
+- **Case-sensitive matching** (`router.options.sensitive: true`) — `/About` no longer matches `pages/about.vue`. Match link casing to file names, or set `router: { options: { sensitive: false } }`.
+- **Typed pages on by default** (`experimental.typedPages`) — `useRoute`, `navigateTo`, `<NuxtLink :to>`, and `router.push` are type-checked against your real routes. Referencing a missing route is a type error; opt out with `experimental.typedPages: false`.
+- **Normalized page component names** — a page is named after its route, not its filename (`pages/foo/index.vue` → `foo`, not `index`). Update `<KeepAlive :include>` filters to route names, or set `experimental.normalizePageNames: false`.
+- **Serializable page meta extracted at build time** — every JSON-serializable `definePageMeta()` property is written into the generated route record; only non-serializable values (functions, refs, spreads) resolve at runtime.
+
 ```text
 app/pages/
 ├── index.vue                 # /
@@ -18,7 +25,7 @@ app/pages/
 
 ## Navigation and typed routes
 
-Use `<NuxtLink>` for links and `navigateTo`/`useRouter` for programmatic navigation. Nuxt prefetches linked components and extracted payloads when links are observed. `experimental.typedPages` adds route-name and path checking; enable it when you want generated route types.
+Use `<NuxtLink>` for links and `navigateTo`/`useRouter` for programmatic navigation. Nuxt prefetches linked components and extracted payloads when links are observed. Typed pages are on by default in Nuxt 5; see the routing defaults above.
 
 ```vue
 <script setup lang="ts">
@@ -89,9 +96,10 @@ A route can render named views with `child@sidebar.vue` and `<NuxtPage name="sid
 
 <!--
 Source references:
-- https://nuxt.com/docs/4.x/getting-started/routing
-- https://nuxt.com/docs/4.x/directory-structure/app/pages
-- https://nuxt.com/docs/4.x/directory-structure/app/middleware
-- https://nuxt.com/docs/4.x/api/utils/define-page-meta
-- https://nuxt.com/docs/4.x/api/composables/use-layout
+- https://nuxt.com/docs/getting-started/routing
+- https://nuxt.com/docs/directory-structure/app/pages
+- https://nuxt.com/docs/directory-structure/app/middleware
+- https://nuxt.com/docs/api/utils/define-page-meta
+- https://nuxt.com/docs/api/composables/use-layout
+- https://nuxt.com/docs/getting-started/upgrade
 -->

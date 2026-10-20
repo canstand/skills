@@ -2,24 +2,24 @@
 name: nitro
 description: Nitro is the framework-agnostic server toolkit (powering Nuxt) for building and deploying web servers anywhere. Use when working with nitro.config, server routes/event handlers, route rules, caching, storage, tasks, websockets, or deploying to Node/Bun/Deno/Cloudflare/Vercel.
 metadata:
-  author: Anthony Fu
-  version: "2026.8.30"
-  source: Generated from https://github.com/nitrojs/nitro, scripts located at https://github.com/antfu/skills
+  author: Anthony Fu, canstand
+  version: "2026.9.25"
+  source: Generated from https://github.com/nitrojs/nitro, customized in https://github.com/canstand/skills
 ---
 
-> The skill is based on Nitro v3.0.260610-beta, generated at 2026-08-30.
+> The skill is based on Nitro v3 (beta, 3.0.260903), generated at 2026-09-25.
 
 Nitro is a framework-agnostic, deployment-agnostic server toolkit powered by [H3](https://h3.dev) v2, [unstorage](https://unstorage.unjs.io), and Vite/Rolldown/Rollup. It powers Nuxt and works standalone. From one codebase it builds optimized output for Node.js, Bun, Deno, Cloudflare, Vercel, Netlify, and more.
 
 Key capabilities:
 - **Filesystem routing** with H3 v2 event handlers, dynamic params, and method suffixes.
 - **Route rules** for declarative caching, headers, redirects, proxying, and CORS; executable auth via middleware.
-- **Caching** layer (cached handlers/functions, SWR) on top of **unstorage** KV.
+- **Caching** layer (cached handlers/functions, SWR) on top of the **unstorage** KV layer.
 - **Runtime config** overridable via `NITRO_*` env vars.
 - **Tasks** (on-demand + scheduled/cron), **WebSockets**/SSE, a SQL **database** layer, and **OpenAPI** auto-docs.
 - **Plugins & lifecycle hooks**, custom **renderer**/**server entry**, and portable **deployment presets**.
 
-> Nitro v3 renamed the package `nitropack` → `nitro` and adopts H3 v2 (web-standard `Request`/`Response`). If unsure about v2-vs-v3 APIs, read [advanced-migration](references/advanced-migration.md) first.
+> **Key v3 changes** (vs. `nitropack` v2): the package is renamed `nitropack` → `nitro` with H3 v2 (web-standard `Request`/`Response`); **auto-imports are removed** (import everything explicitly); directory scanning is **opt-in** via `serverDir`; `useStorage` → `useKV` (`nitro/kv`) and the `storage` config option → `kv`; cache `swr` now defaults to `false`. If unsure about v2-vs-v3 APIs, read [advanced-migration](references/advanced-migration.md) first.
 
 ## Core
 

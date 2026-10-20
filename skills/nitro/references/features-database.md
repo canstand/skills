@@ -17,7 +17,7 @@ export default defineConfig({
 
 ## Usage
 
-`useDatabase()` (auto-imported when the flag is on, or import from `nitro/database`) returns a connection. Optional connection name defaults to `"default"`.
+Import `useDatabase()` from `nitro/database` (no auto-imports in v3). It returns a connection; the optional name defaults to `"default"`.
 
 ```ts [routes/users.ts]
 import { defineHandler } from "nitro";
@@ -76,10 +76,6 @@ export default defineConfig({
       options: { host: "localhost", port: 3306, user: "root", database: "analytics" },
     },
   },
-  // Use a local SQLite db in development while prod uses Postgres
-  devDatabase: {
-    default: { connector: "sqlite", options: { name: "dev-db" } },
-  },
 });
 ```
 
@@ -89,7 +85,7 @@ Use a named connection with `useDatabase("users")`.
 
 ## Connectors
 
-All [db0 connectors](https://db0.unjs.io/connectors) are supported, including: `sqlite` / `node-sqlite`, `better-sqlite3`, `bun-sqlite`, `libsql` (+ `libsql-http`/`libsql-web`/`libsql-core`), `postgresql`, `mysql2`, `pglite`, `planetscale`, `neon`, `cloudflare-d1`, and Cloudflare Hyperdrive variants.
+All [db0 connectors](https://db0.unjs.io/connectors) are supported, including: `sqlite` / `node-sqlite`, `better-sqlite3`, `sqlite3`, `bun` / `bun-sqlite`, `libsql` (+ `libsql-http`/`libsql-web`/`libsql-core`), `postgresql`, `mysql2`, `pglite`, `planetscale`, `neon`, `cloudflare-d1`, and Cloudflare Hyperdrive variants.
 
 ### Connector dependencies
 
@@ -98,9 +94,9 @@ Some connectors need third-party libraries (for example, `postgresql` needs [`pg
 ## Key Points
 
 - Requires `experimental.database: true`; defaults to a zero-config SQLite connection.
-- `useDatabase()` from `nitro/database` (auto-imported when enabled); names default to `"default"`.
+- `useDatabase()` from `nitro/database` (explicit import — no auto-imports in v3); names default to `"default"`.
 - Prefer `db.sql` tagged templates for safe, parameterized queries.
-- Use `devDatabase` to run a different (local) database in development.
+- `devDatabase` **replaces** `database` entirely in dev (not merged per-name) — include every connection you need.
 - Integrates with db0-supported ORMs; prefer this layer over platform-specific DB bindings for portability.
 
 <!--

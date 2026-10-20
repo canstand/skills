@@ -82,8 +82,8 @@ Check the installed CLI's `--help` output for command-specific options; avoid re
 
 <!--
 Source references:
-- https://github.com/nuxt/cli/tree/main/docs
-- https://nuxt.com/docs/4.x/getting-started/installation
-- https://nuxt.com/docs/4.x/getting-started/prerendering
-- https://nuxt.com/docs/4.x/getting-started/deployment
+- https://github.com/nuxt/cli
+- https://nuxt.com/docs/api/commands
+- https://nuxt.com/docs/getting-started/prerendering
+- https://nuxt.com/docs/getting-started/deployment
 -->

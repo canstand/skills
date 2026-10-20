@@ -57,10 +57,12 @@ Files in `app/components`, `app/composables`, and `app/utils` are auto-imported 
 
 ```ts
 // server/api/hello.get.ts
-import { defineEventHandler } from 'nitro/h3'
+import { defineEventHandler } from 'nuxt/server'
 
 export default defineEventHandler(() => ({ hello: 'world' }))
 ```
+
+**Nuxt 5 server imports:** Nitro/h3 helpers (`defineEventHandler`, `getQuery`, `createError`…) are **no longer auto-imported by default** — import them from `nuxt/server`. Your own `server/utils/` and `server/types/` exports are still auto-imported. Inside server code, import shared Nuxt composables from `#imports/server` (not `#imports`). Re-enable Nitro auto-imports with `experimental.nitroAutoImports: true`.
 
 `shared/` is safe in both bundles and must not import Vue or Nitro runtime code. Top-level files in `shared/utils` and `shared/types` are auto-imported; use `#shared/...` for other files. Put app-only types in `app/types/` and server-only types in `server/types/`.
 
@@ -91,9 +93,10 @@ For details about component scanning, including `pathPrefix`, `pattern`, and `ig
 
 <!--
 Source references:
-- https://nuxt.com/docs/4.x/directory-structure
-- https://nuxt.com/docs/4.x/directory-structure/app
-- https://nuxt.com/docs/4.x/directory-structure/server
-- https://nuxt.com/docs/4.x/directory-structure/shared
-- https://nuxt.com/docs/4.x/directory-structure/tsconfig
+- https://nuxt.com/docs/directory-structure
+- https://nuxt.com/docs/directory-structure/app
+- https://nuxt.com/docs/directory-structure/server
+- https://nuxt.com/docs/directory-structure/shared
+- https://nuxt.com/docs/guide/going-further/server-imports
+- https://nuxt.com/docs/directory-structure/tsconfig
 -->

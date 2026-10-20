@@ -62,7 +62,29 @@ const { data } = await useAsyncData(
 
 Handlers must be side-effect free and should return a truthy value. Use `callOnce` for side effects such as Pinia actions. The same key shares `data`, `error`, and `status`; keep handler, `deep`, `transform`, `pick`, `getCachedData`, and `default` consistent across calls. Use a different key for independent data.
 
+## Typed routes (Nuxt 5)
+
+`$fetch` and `useFetch` are typed from the routes the server builder reports. The response type comes from the matching handler's return type, keyed by HTTP method:
+
+```ts
+// server/api/todos.get.ts
+export default defineEventHandler(() => [{ id: '1', title: 'Buy milk' }])
+
+// app code
+const todos = await $fetch('/api/todos')
+//    ^? { id: string, title: string }[]
+```
+
+- Validated input (`readValidatedBody` / `getValidatedQuery`) also types `body`/`query`, and a method the route doesn't handle is rejected.
+- The **`params` option was removed** from `$fetch`/`useFetch` (it was an alias for `query`) — use `query`.
+- A `baseURL` is resolved into the path before matching, so don't pass an already-prefixed path.
+- A runtime path, absolute URL, or `Request` object resolves to `unknown`; provide an explicit type: `` $fetch<{ id: string }>(`/api/${x}`) ``.
+- Unknown paths are `unknown` by default; set `experimental.strictRouteTypes: true` (or `'isomorphic'`) to make them errors.
+- Declare routes Nuxt can't see by augmenting `ServerRoutes` from `@nuxt/schema`, e.g. `'/api/hello': { [Endpoint]: { GET: { response: { message: string } } } }`.
+
 ## Caching and refresh
+
+`useFetch` generates its key from the URL **plus** the fetch options and the call's source location — two `useFetch('/api/user')` calls in different components have **different** keys and each run their own request. To share data, pass the **same explicit `key`**:
 
 ```ts
 const { data } = await useFetch('/api/user', { key: 'current-user' })
@@ -91,10 +113,11 @@ A plain object supplies defaults; a function can enforce overrides or access `us
 
 <!--
 Source references:
-- https://nuxt.com/docs/4.x/getting-started/data-fetching
-- https://nuxt.com/docs/4.x/api/composables/use-fetch
-- https://nuxt.com/docs/4.x/api/composables/use-async-data
-- https://nuxt.com/docs/4.x/api/composables/create-use-fetch
-- https://nuxt.com/docs/4.x/api/composables/create-use-async-data
-- https://nuxt.com/docs/4.x/api/composables/use-request-fetch
+- https://nuxt.com/docs/getting-started/data-fetching
+- https://nuxt.com/docs/api/composables/use-fetch
+- https://nuxt.com/docs/api/composables/use-async-data
+- https://nuxt.com/docs/api/composables/create-use-fetch
+- https://nuxt.com/docs/api/composables/create-use-async-data
+- https://nuxt.com/docs/api/composables/use-request-fetch
+- https://nuxt.com/docs/getting-started/upgrade
 -->

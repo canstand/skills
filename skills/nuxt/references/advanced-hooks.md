@@ -33,7 +33,9 @@ export default defineNuxtModule({
 
 Useful hooks include `ready`, `close`, `modules:before`, `modules:done`, `module:before`, `module:done`, `app:resolve`, `app:templates`, `build:before`, `build:done`, `pages:extend`, `pages:resolved`, `components:dirs`, `components:extend`, `imports:extend`, `nitro:config`, `nitro:init`, `prerender:routes`, `prepare:types`, and `builder:watch`.
 
-`vite:extendConfig` and `vite:configResolved` are deprecated for the forward Nuxt 5/Vite Environment API model and should not be the basis of new integrations; use a Vite plugin with `applyToEnvironment()` instead.
+`callHook` may return `void` (not always a Promise) in Nuxt 5 — always `await` it instead of chaining `.then()`/`.catch()`. Restore the always-Promise behavior with `experimental.asyncCallHook: true`.
+
+`vite:extendConfig` and `vite:configResolved` are deprecated for the Nuxt 5/Vite Environment API model and should not be the basis of new integrations; use a Vite plugin with `applyToEnvironment()` instead.
 
 ## Runtime app hooks
 
@@ -68,7 +70,7 @@ export default definePlugin((nitro) => {
 })
 ```
 
-Important hooks include `request`, `response`, `render:html`, `render:response`, `render:island`, `error`, and `close`. Check the Nitro version's hook types when writing server integrations because request/response arguments follow its Web API model.
+Important hooks include `request`, `response`, `render:html`, `render:response`, `render:island`, `error`, and `close`. `response` replaces v2's `beforeResponse`/`afterResponse`. Check the Nitro version's hook types when writing server integrations because request/response arguments follow its Web API model.
 
 ## Custom hook types
 
@@ -76,9 +78,10 @@ Augment `@nuxt/schema` for build hooks and `#app` for runtime hooks. Use `nitro/
 
 <!--
 Source references:
-- https://nuxt.com/docs/4.x/guide/going-further/hooks
-- https://nuxt.com/docs/4.x/api/advanced/hooks
-- https://nuxt.com/docs/4.x/api/kit/modules
-- https://nuxt.com/docs/4.x/api/kit/nitro
+- https://nuxt.com/docs/guide/going-further/hooks
+- https://nuxt.com/docs/api/advanced/hooks
+- https://nuxt.com/docs/api/kit/modules
+- https://nuxt.com/docs/api/kit/nitro
+- https://nuxt.com/docs/getting-started/upgrade#migration-to-nitro-v3
 - https://vite.dev/guide/api-environment
 -->

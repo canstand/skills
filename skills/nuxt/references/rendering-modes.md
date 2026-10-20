@@ -50,6 +50,10 @@ export default defineNuxtConfig({
 - `noScripts` emits HTML/CSS without Nuxt scripts; it is useful for mostly-static pages but makes them non-interactive.
 - `appMiddleware` controls Vue route middleware for matching page paths.
 
+> **Nitro v3 changes:**
+> - Redirect rules use `status` (not `statusCode`): `redirect: { to: '/new', status: 302 }`.
+> - Cached routes (`cache`/`swr`/`isr`) key on **path only** — the query string is dropped. Keep it with `allowQuery: true` or a list: `cache: { swr: true, maxAge: 60, allowQuery: ['page'] }`.
+
 Hybrid rendering is not available with `nuxt generate`; deploy a server build for runtime route rules.
 
 ## Prerendering and static fallbacks
@@ -59,7 +63,11 @@ nuxt generate
 # or: nuxt build --prerender
 ```
 
-These commands write `.output/public/`, including `_payload.json` files when payload extraction is enabled, plus `200.html` and `404.html` fallbacks. A host may need explicit rewrite configuration. To server-render `error.vue` into the 404 fallback:
+These commands write `.output/public/`, including `200.html` and `404.html` fallbacks; a host may need explicit rewrite configuration.
+
+**Nuxt 5 payload extraction:** `experimental.payloadExtraction` defaults to `'client'` — a prerendered/cached page's payload is inlined in the HTML for the initial render, and `_payload.json` is only fetched during client-side navigation (forced to `false` when `ssr: false`). `nuxt generate` / `nuxt build --prerender` emit `200.html` (the client router handles unmatched paths) and `404.html` (keeps the 404 status); a plain `nuxt build` does not.
+
+To server-render `error.vue` into the 404 fallback:
 
 ```ts
 export default defineNuxtConfig({
@@ -67,7 +75,7 @@ export default defineNuxtConfig({
 })
 ```
 
-For dynamic routes, add paths in the `prerender:routes` hook or call `prerenderRoutes(['/posts/1'])` from server code. Use `import.meta.prerender` when request-specific data must be deferred to the client during generation.
+Because one file serves every missing path, guard request-specific data with `import.meta.prerender` and wrap request-specific markup in `<ClientOnly>`. For dynamic routes, add paths in the `prerender:routes` hook or call `prerenderRoutes(['/posts/1'])` from server code.
 
 ## Edge rendering
 
@@ -75,8 +83,9 @@ Edge-side rendering is a Nitro deployment target, not a separate rendering model
 
 <!--
 Source references:
-- https://nuxt.com/docs/4.x/guide/concepts/rendering
-- https://nuxt.com/docs/4.x/getting-started/prerendering
-- https://nuxt.com/docs/4.x/getting-started/deployment
-- https://nuxt.com/docs/4.x/api/nuxt-config#routerules
+- https://nuxt.com/docs/guide/concepts/rendering
+- https://nuxt.com/docs/getting-started/prerendering
+- https://nuxt.com/docs/getting-started/deployment
+- https://nuxt.com/docs/api/nuxt-config#routerules
+- https://nuxt.com/docs/getting-started/upgrade
 -->

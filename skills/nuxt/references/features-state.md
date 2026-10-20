@@ -39,7 +39,7 @@ await callOnce(async () => {
 </script>
 ```
 
-`clearNuxtState('key')` clears selected state; pass an array or no argument to clear multiple/all keys. With the forward compatibility defaults, `useState` can reset to its initializer when cleared; do not rely on cleared state being permanently `undefined`.
+`clearNuxtState('key')` clears selected state; pass an array or no argument to clear multiple/all keys. In Nuxt 5 it **resets state to its `useState` init value** (`experimental.defaults.useState.resetOnClear`, on by default) instead of setting it to `undefined`. Set `resetOnClear: false` to restore the old behavior.
 
 ## Pinia
 
@@ -56,8 +56,9 @@ export const useCounterStore = defineStore('counter', () => {
 
 <!--
 Source references:
-- https://nuxt.com/docs/4.x/getting-started/state-management
-- https://nuxt.com/docs/4.x/api/composables/use-state
-- https://nuxt.com/docs/4.x/api/utils/call-once
-- https://nuxt.com/docs/4.x/api/utils/clear-nuxt-state
+- https://nuxt.com/docs/getting-started/state-management
+- https://nuxt.com/docs/api/composables/use-state
+- https://nuxt.com/docs/api/utils/call-once
+- https://nuxt.com/docs/api/utils/clear-nuxt-state
+- https://nuxt.com/docs/getting-started/upgrade
 -->

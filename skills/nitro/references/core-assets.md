@@ -5,7 +5,7 @@ description: Public assets served to clients and server assets bundled for runti
 
 # Assets
 
-Nitro handles two asset kinds: **public assets** served directly to clients, and **server assets** bundled into the server for programmatic access.
+Nitro handles three asset kinds: **public assets** served directly to clients, **imported files** inlined into the bundle, and **server assets** bundled into the server for programmatic access via the storage layer.
 
 ## Public assets
 
@@ -36,7 +36,7 @@ export default defineConfig({
 });
 ```
 
-Other entry options: `fallthrough` (continue to handlers when not found; defaults `true` for root, `false` otherwise) and `ignore`.
+Other entry options: `dir` (relative to `rootDir`), `fallthrough` (continue to handlers when not found; defaults `true` for root, `false` otherwise) and `ignore`. `maxAge` only applies when `fallthrough` is `false`.
 
 ### Pre-compression
 
@@ -48,11 +48,11 @@ export default defineConfig({
 });
 ```
 
-Only compressible MIME types ≥ 1 KB are compressed (`.map` files excluded).
+Only compressible MIME types ≥ 1 KB are compressed (`.map` files excluded; zstd needs Node 22+ at build time).
 
 ## Server assets
 
-Files in `assets/` (relative to `serverDir` when it is set, otherwise the project root) are bundled into the server and read via the storage layer at the `assets:server` mount point (only included in the bundle when accessed through `useStorage`).
+Files in `assets/` (relative to `serverDir` when it is set, otherwise the project root) are bundled into the server and read via the storage layer at the `assets:server` mount point (only included in the bundle when accessed through `useKV`).
 
 ```
 assets/
@@ -62,10 +62,10 @@ assets/
 
 ```ts [routes/index.ts]
 import { defineHandler } from "nitro";
-import { useStorage } from "nitro/storage";
+import { useKV } from "nitro/kv";
 
 export default defineHandler(async () => {
-  const serverAssets = useStorage("assets:server");
+  const serverAssets = useKV("assets:server");
   const keys = await serverAssets.getKeys();
   const data = await serverAssets.getItem("data.json");
   const meta = await serverAssets.getMeta("data.json"); // { type, etag, mtime }
@@ -88,10 +88,10 @@ export default defineConfig({
 Access via the `assets:templates` mount:
 
 ```ts
-const html = await useStorage("assets:templates").getItem("email.html");
+const html = await useKV("assets:templates").getItem("email.html");
 ```
 
-Entry options: `baseName`, `dir`, `pattern` (default `**/*`), `ignore`.
+Entry options: `baseName`, `dir` (relative to `rootDir`), `pattern` (default `**/*`), `ignore`.
 
 ## Importing files
 
@@ -113,8 +113,8 @@ Dynamic imports accept the same attribute: `await import("./logo.png", { with: {
 
 ## Key Points
 
-- `public/` → served to clients with ETag/compression; `assets/` → bundled, read via `useStorage("assets:server")`.
-- Server assets are only bundled if referenced through `useStorage`.
+- `public/` → served to clients with ETag/compression; `assets/` → bundled, read via `useKV("assets:server")`.
+- Server assets are only bundled if referenced through `useKV` (v2 `useStorage`).
 - In dev, server assets read from the filesystem; in production they are inlined with precomputed metadata.
 - Use `publicAssets[].maxAge` and `compressPublicAssets` to offload caching/compression without a CDN.
 
